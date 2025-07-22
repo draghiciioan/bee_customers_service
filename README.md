@@ -169,6 +169,56 @@ This service integrates with:
 - **bee_scheduling_service**: For appointment history
 - **bee_notifications_service**: For personalized messaging
 
+## RabbitMQ Events
+
+The service publishes customer-related events to RabbitMQ. Set the broker URL
+via the required `RABBITMQ_URL` environment variable. All events are sent to the
+`bee.customers.events` exchange (type `topic`) using routing keys matching
+`v1.customer.*`. Each message includes the HTTP `X-Trace-Id` value in the
+`trace_id` header for end-to-end observability.
+
+### Sample Payloads
+
+`v1.customer.created`
+```json
+{
+  "id": "uuid",
+  "user_id": "uuid",
+  "business_id": "uuid",
+  "full_name": "Ana Popescu",
+  "email": "ana@email.com",
+  "trace_id": "uuid"
+}
+```
+
+`v1.customer.updated`
+```json
+{
+  "id": "uuid",
+  "fields_changed": ["phone", "avatar_url"],
+  "trace_id": "uuid"
+}
+```
+
+`v1.customer.tagged`
+```json
+{
+  "customer_id": "uuid",
+  "tag_id": "uuid",
+  "label": "VIP",
+  "trace_id": "uuid"
+}
+```
+
+`v1.customer.note_added`
+```json
+{
+  "customer_id": "uuid",
+  "note_id": "uuid",
+  "trace_id": "uuid"
+}
+```
+
 ## Monitoring and Logging
 
 - Prometheus metrics exposed at `/metrics`
