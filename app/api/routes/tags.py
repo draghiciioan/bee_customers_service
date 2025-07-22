@@ -23,7 +23,10 @@ def create_tag(
     Create a new tag for a customer.
     """
     tag_service = TagService(db)
-    return tag_service.create_tag(tag, trace_id)
+    try:
+        return tag_service.create_tag(tag, trace_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 @router.get("/customer/{customer_id}", response_model=List[TagResponse])
@@ -73,7 +76,10 @@ def create_customer_tags(
     """Create one or multiple tags for a customer."""
     tag_service = TagService(db)
     labels = [payload.label] if payload.label else (payload.labels or [])
-    created_tags = tag_service.create_tags(customer_id, labels, trace_id=trace_id)
+    try:
+        created_tags = tag_service.create_tags(customer_id, labels, trace_id=trace_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return created_tags
 
 
