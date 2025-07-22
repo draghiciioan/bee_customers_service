@@ -1,5 +1,6 @@
 import os
 import importlib
+import sys
 import pytest
 import pytest_asyncio
 
@@ -14,7 +15,13 @@ def db_session(tmp_path):
     db_path = tmp_path / "test.db"
     os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
     importlib.reload(database)
-    import app.models.customer
+    for mod in ["app.models.customer", "app.models.customer_tag", "app.services.tag_service"]:
+        if mod in sys.modules:
+            del sys.modules[mod]
+    import app.models.customer  # noqa: F401
+    import app.models.customer_tag  # noqa: F401
+    import app.services.tag_service  # noqa: F401
+    Base.metadata.drop_all(bind=database.engine)
     Base.metadata.create_all(bind=database.engine)
     session = database.SessionLocal()
     try:
@@ -39,10 +46,12 @@ async def async_client(db_session):
 
     app.dependency_overrides[database.get_db] = override_get_db
 
-    from httpx import AsyncClient
+    from httpx import AsyncClient, ASGITransport
 
-    async with AsyncClient(app=app, base_url="http://testserver") as client:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
         yield client
 
     app.dependency_overrides.clear()
+
 
