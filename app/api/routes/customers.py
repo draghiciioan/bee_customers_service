@@ -6,7 +6,12 @@ from uuid import UUID
 from app.db.database import get_db
 from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
 from app.services.customer_service import CustomerService
-from app.api.dependencies import User, require_customer_or_admin
+from app.api.dependencies import (
+    User,
+    require_customer_or_admin,
+    require_admin,
+    require_internal_service,
+)
 from pathlib import Path
 from uuid import uuid4
 
@@ -16,7 +21,8 @@ router = APIRouter()
 @router.post("/", response_model=CustomerResponse, status_code=status.HTTP_201_CREATED)
 def create_customer(
     customer: CustomerCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: User = Depends(require_internal_service),
 ):
     """
     Create a new customer profile.
@@ -51,6 +57,7 @@ def get_customers(
     query: Optional[str] = Query(None, min_length=3),
     search: Optional[str] = Query(None, alias="search", include_in_schema=False),
     db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     """Return customers filtered by optional business ID and search query."""
     customer_service = CustomerService(db)
@@ -62,7 +69,8 @@ def get_customers(
 def update_customer(
     customer_id: UUID,
     customer: CustomerUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: User = Depends(require_customer_or_admin),
 ):
     """
     Update a customer's information.
@@ -130,7 +138,8 @@ def delete_customer(
 @router.get("/{customer_id}/statistics", response_model=dict, deprecated=True)
 def get_customer_statistics(
     customer_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: User = Depends(require_customer_or_admin),
 ):
     """
     Get statistics for a specific customer.

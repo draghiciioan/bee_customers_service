@@ -6,6 +6,7 @@ from uuid import UUID
 from app.db.database import get_db
 from app.schemas.note import NoteCreatePayload, NoteResponse
 from app.services.note_service import NoteService
+from app.api.dependencies import User, require_admin
 
 customer_router = APIRouter()
 
@@ -19,6 +20,7 @@ def create_customer_note(
     customer_id: UUID,
     note: NoteCreatePayload,
     db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     """Create a note for a specific customer."""
     service = NoteService(db)
@@ -32,6 +34,7 @@ def create_customer_note(
 def get_customer_notes(
     customer_id: UUID,
     db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     """Retrieve all notes for a customer."""
     service = NoteService(db)
@@ -46,6 +49,7 @@ def delete_customer_note(
     customer_id: UUID,
     note_id: UUID,
     db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     """Delete a specific note for a customer."""
     service = NoteService(db)

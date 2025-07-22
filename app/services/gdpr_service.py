@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from typing import Dict, Optional, List
+from typing import Dict, Optional
 from uuid import UUID
 
 from app.models.customer import Customer

@@ -6,6 +6,7 @@ from uuid import UUID
 from app.db.database import get_db
 from app.schemas.tag import TagCreate, TagResponse, TagsCreate
 from app.services.tag_service import TagService
+from app.api.dependencies import User, require_admin
 
 router = APIRouter()
 customer_router = APIRouter()
@@ -14,7 +15,8 @@ customer_router = APIRouter()
 @router.post("/", response_model=TagResponse, status_code=status.HTTP_201_CREATED)
 def create_tag(
     tag: TagCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     """
     Create a new tag for a customer.
@@ -26,7 +28,8 @@ def create_tag(
 @router.get("/customer/{customer_id}", response_model=List[TagResponse])
 def get_customer_tags(
     customer_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     """
     Get all tags for a specific customer.
@@ -38,7 +41,8 @@ def get_customer_tags(
 @router.delete("/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_tag(
     tag_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     """
     Delete a tag.
@@ -62,6 +66,7 @@ def create_customer_tags(
     customer_id: UUID,
     payload: TagsCreate,
     db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     """Create one or multiple tags for a customer."""
     tag_service = TagService(db)
@@ -78,6 +83,7 @@ def delete_customer_tag(
     customer_id: UUID,
     tag_id: UUID,
     db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     """Delete a tag from a specific customer."""
     tag_service = TagService(db)
