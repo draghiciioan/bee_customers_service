@@ -35,7 +35,8 @@ def create_customer(
 @router.get("/{customer_id}", response_model=CustomerResponse)
 def get_customer(
     customer_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: User = Depends(require_customer_or_admin),
 ):
     """
     Get a customer by ID.
@@ -123,7 +124,8 @@ async def upload_avatar(
 @router.delete("/{customer_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_customer(
     customer_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: User = Depends(require_customer_or_admin),
 ):
     """
     Delete a customer.
