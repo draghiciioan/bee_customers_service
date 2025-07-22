@@ -56,7 +56,7 @@ def get_customers(
     return customer_service.get_customers(skip, limit, business_id, search)
 
 
-@router.put("/{customer_id}", response_model=CustomerResponse)
+@router.patch("/{customer_id}", response_model=CustomerResponse)
 def update_customer(
     customer_id: UUID,
     customer: CustomerUpdate,
