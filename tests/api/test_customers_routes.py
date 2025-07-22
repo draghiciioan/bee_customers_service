@@ -22,7 +22,7 @@ def test_crud_workflow(db_session):
     assert response.status_code == 200
     assert response.json()['email'] == 'john@example.com'
 
-    response = client.put(f'/api/customers/{customer_id}', json={'full_name': 'Jane Doe'})
+    response = client.patch(f'/api/customers/{customer_id}', json={'full_name': 'Jane Doe'})
     assert response.status_code == 200
     assert response.json()['full_name'] == 'Jane Doe'
 
