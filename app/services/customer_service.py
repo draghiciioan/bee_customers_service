@@ -94,3 +94,14 @@ class CustomerService:
         self.db.delete(db_customer)
         self.db.commit()
         return True
+
+    def update_avatar(self, customer_id: UUID, avatar_url: str) -> Optional[Customer]:
+        """Update avatar URL for a customer."""
+        db_customer = self.get_customer(customer_id)
+        if not db_customer:
+            return None
+
+        db_customer.avatar_url = avatar_url
+        self.db.commit()
+        self.db.refresh(db_customer)
+        return db_customer
