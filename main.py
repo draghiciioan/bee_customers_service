@@ -29,7 +29,7 @@ app.add_middleware(
 app.include_router(customers.router, prefix="/api/customers", tags=["customers"])
 app.include_router(tags.router, prefix="/api/customers/tags", tags=["tags"])
 app.include_router(tags.customer_router, prefix="/api/customers", tags=["tags"])
-app.include_router(notes.router, prefix="/api/customers/notes", tags=["notes"])
+app.include_router(notes.customer_router, prefix="/api/customers", tags=["notes"])
 app.include_router(gdpr.router, prefix="/api/gdpr", tags=["gdpr"])
 
 # Root endpoint
