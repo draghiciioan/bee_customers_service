@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.services.gdpr_service import GDPRService
 from app.schemas.gdpr import GDPRRequest
+from app.api.dependencies import User, require_customer_or_admin
 
 router = APIRouter()
 
@@ -11,7 +12,8 @@ router = APIRouter()
 @router.post("/export", status_code=status.HTTP_200_OK)
 def export_customer_data(
     request: GDPRRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: User = Depends(require_customer_or_admin),
 ):
     """
     Export all data for a specific customer (GDPR compliance).
@@ -29,7 +31,8 @@ def export_customer_data(
 @router.post("/delete", status_code=status.HTTP_204_NO_CONTENT)
 def delete_customer_data(
     request: GDPRRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: User = Depends(require_customer_or_admin),
 ):
     """
     Delete all data for a specific customer (GDPR compliance).
