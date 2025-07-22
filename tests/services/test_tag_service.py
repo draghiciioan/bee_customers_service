@@ -56,3 +56,33 @@ def test_create_multiple_tags(db_session):
 
     retrieved = tag_service.get_tags_by_customer(customer_id)
     assert sorted([t.label for t in retrieved]) == sorted(labels)
+
+
+def test_tagging_emits_event(db_session, monkeypatch):
+    customer_service = CustomerService(db_session)
+    customer_id = create_sample_customer(customer_service)
+
+    tag_service = TagService(db_session)
+
+    captured = []
+
+    async def dummy_publish(event_name: str, payload: dict, trace_id: str):
+        captured.append((event_name, payload, trace_id))
+
+    monkeypatch.setattr(
+        "app.services.event_publisher.publish_event", dummy_publish
+    )
+
+    tag = tag_service.create_tag(
+        TagCreate(customer_id=customer_id, label="VIP", created_by=uuid.uuid4()),
+        "trace123",
+    )
+
+    assert len(captured) == 1
+    name, payload, trace_id = captured[0]
+    assert name == "v1.customer.tagged"
+    assert payload["customer_id"] == str(customer_id)
+    assert payload["tag_id"] == str(tag.id)
+    assert payload["label"] == "VIP"
+    assert payload["trace_id"] == "trace123"
+    assert trace_id == "trace123"
