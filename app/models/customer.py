@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Date, DateTime, Numeric, Enum, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, String, Integer, Date, DateTime, Numeric, Enum, ForeignKey, UniqueConstraint, Index
 from sqlalchemy.dialects.postgresql import UUID
 from uuid import uuid4
 from datetime import datetime
@@ -36,3 +36,9 @@ class Customer(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "business_id", name="uq_user_per_business"),
     )
+
+# Explicit indexes for faster queries on common filters
+Index("ix_customer_business_id", Customer.business_id)
+Index("ix_customer_user_id", Customer.user_id)
+Index("ix_customer_full_name", Customer.full_name)
+Index("ix_customer_phone", Customer.phone)

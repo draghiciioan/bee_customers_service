@@ -95,6 +95,10 @@ This service integrates with:
 - Structured logging compatible with Loki/ELK
 - Health check endpoint at `/healthcheck`
 
+## Changelog
+
+- **2025-07-22**: Added explicit indexes for `Customer` model (`business_id`, `user_id`, `full_name`, `phone`). Existing deployments require table recreation to apply these indexes.
+
 ## License
 
 [License information]
