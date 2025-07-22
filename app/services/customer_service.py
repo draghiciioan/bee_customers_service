@@ -36,30 +36,28 @@ class CustomerService:
         return self.db.query(Customer).filter(Customer.id == customer_id).first()
 
     def get_customers(
-        self, 
-        skip: int = 0, 
-        limit: int = 100, 
+        self,
+        skip: int = 0,
+        limit: int = 100,
         business_id: Optional[UUID] = None,
-        search: Optional[str] = None
+        query: Optional[str] = None,
     ) -> List[Customer]:
-        """
-        Get all customers with optional filtering.
-        """
-        query = self.db.query(Customer)
-        
+        """Return customers filtered by business ID and optional query string."""
+        db_query = self.db.query(Customer)
+
         if business_id:
-            query = query.filter(Customer.business_id == business_id)
-            
-        if search:
-            query = query.filter(
+            db_query = db_query.filter(Customer.business_id == business_id)
+
+        if query:
+            db_query = db_query.filter(
                 or_(
-                    Customer.full_name.ilike(f"%{search}%"),
-                    Customer.email.ilike(f"%{search}%"),
-                    Customer.phone.ilike(f"%{search}%")
+                    Customer.full_name.ilike(f"%{query}%"),
+                    Customer.email.ilike(f"%{query}%"),
+                    Customer.phone.ilike(f"%{query}%"),
                 )
             )
-            
-        return query.offset(skip).limit(limit).all()
+
+        return db_query.offset(skip).limit(limit).all()
 
     def update_customer(self, customer_id: UUID, customer_data: CustomerUpdate) -> Optional[Customer]:
         """

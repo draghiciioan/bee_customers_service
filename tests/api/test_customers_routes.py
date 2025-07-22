@@ -85,3 +85,28 @@ def test_upload_avatar_invalid_file(db_session, tmp_path):
 
     assert resp.status_code == 400
 
+
+def test_get_customers_query_param(db_session):
+    main_module = importlib.reload(__import__('main'))
+    client = TestClient(main_module.app)
+
+    payload = {
+        'user_id': str(uuid.uuid4()),
+        'business_id': str(uuid.uuid4()),
+        'full_name': 'Alice Query',
+        'email': 'alice@example.com',
+        'phone': '0000000000',
+        'gender': 'female',
+        'avatar_url': None,
+    }
+    resp = client.post('/api/customers/', json=payload)
+    assert resp.status_code == 201
+
+    resp = client.get('/api/customers/?query=Alice')
+    assert resp.status_code == 200
+    assert any(c['email'] == 'alice@example.com' for c in resp.json())
+
+    alias_resp = client.get('/api/customers/?search=Alice')
+    assert alias_resp.status_code == 200
+    assert resp.json() == alias_resp.json()
+

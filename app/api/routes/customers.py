@@ -48,14 +48,14 @@ def get_customers(
     skip: int = 0,
     limit: int = 100,
     business_id: Optional[UUID] = None,
-    search: Optional[str] = Query(None, min_length=3),
-    db: Session = Depends(get_db)
+    query: Optional[str] = Query(None, min_length=3),
+    search: Optional[str] = Query(None, alias="search", include_in_schema=False),
+    db: Session = Depends(get_db),
 ):
-    """
-    Get all customers with optional filtering by business_id and search term.
-    """
+    """Return customers filtered by optional business ID and search query."""
     customer_service = CustomerService(db)
-    return customer_service.get_customers(skip, limit, business_id, search)
+    search_term = query or search
+    return customer_service.get_customers(skip, limit, business_id, search_term)
 
 
 @router.patch("/{customer_id}", response_model=CustomerResponse)
