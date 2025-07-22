@@ -43,3 +43,16 @@ def test_create_and_get_tag(db_session):
     tags = tag_service.get_tags_by_customer(customer_id)
     assert len(tags) == 1
     assert tags[0].id == created.id
+
+
+def test_create_multiple_tags(db_session):
+    customer_service = CustomerService(db_session)
+    customer_id = create_sample_customer(customer_service)
+
+    tag_service = TagService(db_session)
+    labels = ["VIP", "Regular"]
+    created_tags = tag_service.create_tags(customer_id, labels)
+    assert len(created_tags) == 2
+
+    retrieved = tag_service.get_tags_by_customer(customer_id)
+    assert sorted([t.label for t in retrieved]) == sorted(labels)
