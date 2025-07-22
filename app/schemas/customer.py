@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, constr
 from typing import Optional
 from uuid import UUID
 from datetime import date, datetime
@@ -14,7 +14,9 @@ class Gender(str, Enum):
 class CustomerBase(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
-    phone: Optional[str] = Field(None, max_length=20)
+    phone: Optional[constr(pattern=r"^(\+4|0)?7\d{8}$")] = Field(
+        None, max_length=20
+    )
     gender: Optional[Gender] = None
     avatar_url: Optional[str] = None
 
@@ -27,6 +29,9 @@ class CustomerCreate(CustomerBase):
 class CustomerUpdate(CustomerBase):
     full_name: Optional[str] = Field(None, min_length=2, max_length=100)
     email: Optional[EmailStr] = None
+    phone: Optional[constr(pattern=r"^(\+4|0)?7\d{8}$")] = Field(
+        None, max_length=20
+    )
 
 
 class CustomerResponse(CustomerBase):

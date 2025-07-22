@@ -1,4 +1,6 @@
 import uuid
+import pytest
+from pydantic import ValidationError
 from app.services.customer_service import CustomerService
 from app.schemas.customer import CustomerCreate, CustomerUpdate, Gender
 
@@ -10,7 +12,7 @@ def create_sample_customer(service: CustomerService) -> uuid.UUID:
         business_id=uuid.uuid4(),
         full_name="John Doe",
         email="john@example.com",
-        phone="1234567890",
+        phone="0712345678",
         gender=Gender.MALE,
         avatar_url=None,
     )
@@ -58,7 +60,7 @@ def test_create_customer_emits_event(db_session, monkeypatch):
         business_id=uuid.uuid4(),
         full_name="Event User",
         email="event@example.com",
-        phone="000",
+        phone="0712345678",
         gender=Gender.MALE,
         avatar_url=None,
     )
@@ -83,7 +85,7 @@ def test_update_customer_emits_event(db_session, monkeypatch):
         business_id=uuid.uuid4(),
         full_name="Old Name",
         email="old@example.com",
-        phone="111",
+        phone="0712345678",
         gender=Gender.MALE,
         avatar_url=None,
     )
@@ -108,4 +110,20 @@ def test_update_customer_emits_event(db_session, monkeypatch):
     assert "full_name" in payload["fields_changed"]
     assert payload["trace_id"] == "trace_update"
     assert trace_id == "trace_update"
+
+
+def test_create_customer_invalid_phone():
+    with pytest.raises(ValidationError):
+        CustomerCreate(
+            user_id=uuid.uuid4(),
+            business_id=uuid.uuid4(),
+            full_name="Bad",
+            email="bad@example.com",
+            phone="123",  # invalid
+        )
+
+
+def test_update_customer_invalid_phone():
+    with pytest.raises(ValidationError):
+        CustomerUpdate(phone="abc")
 

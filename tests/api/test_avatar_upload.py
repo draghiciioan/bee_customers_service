@@ -10,7 +10,7 @@ def create_customer(client, headers):
         'business_id': str(uuid.uuid4()),
         'full_name': 'Avatar User',
         'email': 'avatar@example.com',
-        'phone': '5550000',
+        'phone': '0712345678',
         'gender': 'male',
         'avatar_url': None,
     }
