@@ -3,7 +3,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from app.models.customer_note import CustomerNote
-from app.schemas.note import NoteCreate
+from app.schemas.note import NoteCreate, NoteCreatePayload
 
 
 class NoteService:
@@ -23,6 +23,17 @@ class NoteService:
         self.db.commit()
         self.db.refresh(db_note)
         return db_note
+
+    def create_customer_note(
+        self, customer_id: UUID, payload: NoteCreatePayload
+    ) -> CustomerNote:
+        """Create a note when the customer_id is provided separately."""
+        data = NoteCreate(
+            customer_id=customer_id,
+            content=payload.content,
+            created_by=payload.created_by,
+        )
+        return self.create_note(data)
 
     def get_note(self, note_id: UUID) -> Optional[CustomerNote]:
         """
@@ -44,6 +55,22 @@ class NoteService:
         if not db_note:
             return False
             
+        self.db.delete(db_note)
+        self.db.commit()
+        return True
+
+    def delete_customer_note(self, customer_id: UUID, note_id: UUID) -> bool:
+        """Delete a note belonging to a specific customer."""
+        db_note = (
+            self.db.query(CustomerNote)
+            .filter(
+                CustomerNote.id == note_id,
+                CustomerNote.customer_id == customer_id,
+            )
+            .first()
+        )
+        if not db_note:
+            return False
         self.db.delete(db_note)
         self.db.commit()
         return True

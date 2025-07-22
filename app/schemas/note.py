@@ -13,6 +13,11 @@ class NoteCreate(NoteBase):
     created_by: UUID  # admin user_id
 
 
+class NoteCreatePayload(NoteBase):
+    """Payload for routes where customer_id is passed in the path."""
+    created_by: UUID  # admin user_id
+
+
 class NoteResponse(NoteBase):
     id: UUID
     customer_id: UUID
