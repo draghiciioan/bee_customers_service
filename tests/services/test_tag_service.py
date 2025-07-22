@@ -11,7 +11,7 @@ def create_sample_customer(service: CustomerService) -> uuid.UUID:
         business_id=uuid.uuid4(),
         full_name="John Doe",
         email="john@example.com",
-        phone="1234567890",
+        phone="0712345678",
         gender=Gender.MALE,
         avatar_url=None,
     )

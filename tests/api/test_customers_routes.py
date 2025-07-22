@@ -10,7 +10,7 @@ def test_crud_workflow(db_session, auth_headers, internal_headers):
         'business_id': str(uuid.uuid4()),
         'full_name': 'John Doe',
         'email': 'john@example.com',
-        'phone': '1234567890',
+        'phone': '0712345678',
         'gender': 'male',
         'avatar_url': None,
     }
@@ -46,7 +46,7 @@ def test_get_customers_query_param(db_session, auth_headers, internal_headers):
         'business_id': str(uuid.uuid4()),
         'full_name': 'Alice Query',
         'email': 'alice@example.com',
-        'phone': '0000000000',
+        'phone': '0712345678',
         'gender': 'female',
         'avatar_url': None,
     }
@@ -72,7 +72,7 @@ def test_stats_endpoint(db_session, auth_headers, internal_headers):
         'business_id': str(uuid.uuid4()),
         'full_name': 'Stat Test',
         'email': 'stat@example.com',
-        'phone': '1111111111',
+        'phone': '0712345678',
         'gender': 'male',
         'avatar_url': None,
     }

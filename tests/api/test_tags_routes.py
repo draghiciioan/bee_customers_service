@@ -12,7 +12,7 @@ def test_create_and_get_tags(db_session, auth_headers, internal_headers):
         'business_id': str(uuid.uuid4()),
         'full_name': 'John Doe',
         'email': 'john@example.com',
-        'phone': '1234567890',
+        'phone': '0712345678',
         'gender': 'male',
         'avatar_url': None,
     }
@@ -53,7 +53,7 @@ def test_create_and_delete_tags_new_routes(db_session, auth_headers, internal_he
         'business_id': str(uuid.uuid4()),
         'full_name': 'Jane Doe',
         'email': 'jane@example.com',
-        'phone': '0987654321',
+        'phone': '0712345678',
         'gender': 'female',
         'avatar_url': None,
     }

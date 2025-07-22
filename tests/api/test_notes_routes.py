@@ -10,7 +10,7 @@ def create_customer(client, headers):
         'business_id': str(uuid.uuid4()),
         'full_name': 'Note User',
         'email': 'note@example.com',
-        'phone': '5550000',
+        'phone': '0712345678',
         'gender': 'male',
         'avatar_url': None,
     }
@@ -62,7 +62,7 @@ async def test_note_routes_async(db_session, auth_headers, internal_headers, asy
         'business_id': str(uuid.uuid4()),
         'full_name': 'Async User',
         'email': 'async@example.com',
-        'phone': '5551111',
+        'phone': '0712345678',
         'gender': 'male',
         'avatar_url': None,
     }
