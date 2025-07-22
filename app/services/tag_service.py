@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from uuid import UUID
+import logging
 
 from app.models.customer_tag import CustomerTag
 from app.schemas.tag import TagCreate
@@ -9,6 +10,7 @@ from app.schemas.tag import TagCreate
 class TagService:
     def __init__(self, db: Session):
         self.db = db
+        self.logger = logging.getLogger(__name__)
 
     def create_tag(self, tag: TagCreate, trace_id: str) -> CustomerTag:
         """Create a single tag for a customer."""
@@ -45,6 +47,16 @@ class TagService:
         self.db.commit()
         for tag in db_tags:
             self.db.refresh(tag)
+
+        for tag in db_tags:
+            self.logger.info(
+                "Customer tagged",
+                extra={
+                    "customer_id": str(tag.customer_id),
+                    "tag_id": str(tag.id),
+                    "trace_id": trace_id,
+                },
+            )
 
         from app.services.event_publisher import publish_event_sync
 

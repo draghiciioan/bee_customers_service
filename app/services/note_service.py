@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from uuid import UUID
+import logging
 
 from app.models.customer_note import CustomerNote
 from app.schemas.note import NoteCreate, NoteCreatePayload
@@ -9,6 +10,7 @@ from app.schemas.note import NoteCreate, NoteCreatePayload
 class NoteService:
     def __init__(self, db: Session):
         self.db = db
+        self.logger = logging.getLogger(__name__)
 
     def create_note(self, note: NoteCreate, trace_id: str) -> CustomerNote:
         """
@@ -22,6 +24,15 @@ class NoteService:
         self.db.add(db_note)
         self.db.commit()
         self.db.refresh(db_note)
+
+        self.logger.info(
+            "Note created",
+            extra={
+                "customer_id": str(db_note.customer_id),
+                "note_id": str(db_note.id),
+                "trace_id": trace_id,
+            },
+        )
 
         from app.services.event_publisher import publish_event_sync
 
