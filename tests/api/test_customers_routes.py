@@ -110,3 +110,29 @@ def test_get_customers_query_param(db_session):
     assert alias_resp.status_code == 200
     assert resp.json() == alias_resp.json()
 
+
+def test_stats_alias(db_session):
+    """Ensure the /stats alias returns the same data as /statistics."""
+    main_module = importlib.reload(__import__('main'))
+    client = TestClient(main_module.app)
+
+    payload = {
+        'user_id': str(uuid.uuid4()),
+        'business_id': str(uuid.uuid4()),
+        'full_name': 'Stat Test',
+        'email': 'stat@example.com',
+        'phone': '1111111111',
+        'gender': 'male',
+        'avatar_url': None,
+    }
+    resp = client.post('/api/customers/', json=payload)
+    assert resp.status_code == 201
+    customer_id = resp.json()['id']
+
+    stats_resp = client.get(f'/api/customers/{customer_id}/stats')
+    assert stats_resp.status_code == 200
+
+    old_resp = client.get(f'/api/customers/{customer_id}/statistics')
+    assert old_resp.status_code == 200
+    assert stats_resp.json() == old_resp.json()
+

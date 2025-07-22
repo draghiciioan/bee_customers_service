@@ -126,7 +126,8 @@ def delete_customer(
     return None
 
 
-@router.get("/{customer_id}/statistics", response_model=dict)
+@router.get("/{customer_id}/stats", response_model=dict)
+@router.get("/{customer_id}/statistics", response_model=dict, deprecated=True)
 def get_customer_statistics(
     customer_id: UUID,
     db: Session = Depends(get_db)
