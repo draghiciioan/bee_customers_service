@@ -1,21 +1,19 @@
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from app.db.database import get_db
 from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
 from app.services.customer_service import CustomerService
-from app.core.tracing import get_trace_id
-from fastapi import Request
 from app.api.dependencies import (
     User,
     require_customer_or_admin,
     require_admin,
     require_internal_service,
+    trace_id_dependency,
 )
 from pathlib import Path
-from uuid import uuid4
 
 router = APIRouter()
 
@@ -23,7 +21,7 @@ router = APIRouter()
 @router.post("/", response_model=CustomerResponse, status_code=status.HTTP_201_CREATED)
 def create_customer(
     customer: CustomerCreate,
-    request: Request,
+    trace_id: str = Depends(trace_id_dependency),
     db: Session = Depends(get_db),
     _: User = Depends(require_internal_service),
 ):
@@ -31,7 +29,6 @@ def create_customer(
     Create a new customer profile.
     """
     customer_service = CustomerService(db)
-    trace_id = get_trace_id(request)
     return customer_service.create_customer(customer, trace_id)
 
 
@@ -73,7 +70,7 @@ def get_customers(
 def update_customer(
     customer_id: UUID,
     customer: CustomerUpdate,
-    request: Request,
+    trace_id: str = Depends(trace_id_dependency),
     db: Session = Depends(get_db),
     _: User = Depends(require_customer_or_admin),
 ):
@@ -81,7 +78,6 @@ def update_customer(
     Update a customer's information.
     """
     customer_service = CustomerService(db)
-    trace_id = get_trace_id(request)
     updated_customer = customer_service.update_customer(
         customer_id, customer, trace_id
     )

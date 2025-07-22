@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import List, Optional
 from uuid import UUID
+import logging
 
 from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate, CustomerUpdate
@@ -10,6 +11,7 @@ from app.schemas.customer import CustomerCreate, CustomerUpdate
 class CustomerService:
     def __init__(self, db: Session):
         self.db = db
+        self.logger = logging.getLogger(__name__)
 
     def create_customer(self, customer: CustomerCreate, trace_id: str) -> Customer:
         """
@@ -27,6 +29,15 @@ class CustomerService:
         self.db.add(db_customer)
         self.db.commit()
         self.db.refresh(db_customer)
+
+        self.logger.info(
+            "Customer created",
+            extra={
+                "customer_id": str(db_customer.id),
+                "business_id": str(db_customer.business_id),
+                "trace_id": trace_id,
+            },
+        )
 
         from app.services.event_publisher import publish_event_sync
 
@@ -105,6 +116,16 @@ class CustomerService:
                 "trace_id": trace_id,
             }
             publish_event_sync("v1.customer.updated", payload, trace_id)
+
+        if fields_changed:
+            self.logger.info(
+                "Customer updated",
+                extra={
+                    "customer_id": str(db_customer.id),
+                    "fields_changed": fields_changed,
+                    "trace_id": trace_id,
+                },
+            )
 
         return db_customer
 

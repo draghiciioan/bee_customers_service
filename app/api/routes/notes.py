@@ -6,9 +6,7 @@ from uuid import UUID
 from app.db.database import get_db
 from app.schemas.note import NoteCreatePayload, NoteResponse
 from app.services.note_service import NoteService
-from app.api.dependencies import User, require_admin
-from app.core.tracing import get_trace_id
-from fastapi import Request
+from app.api.dependencies import User, require_admin, trace_id_dependency
 
 customer_router = APIRouter()
 
@@ -21,13 +19,12 @@ customer_router = APIRouter()
 def create_customer_note(
     customer_id: UUID,
     note: NoteCreatePayload,
-    request: Request,
+    trace_id: str = Depends(trace_id_dependency),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
     """Create a note for a specific customer."""
     service = NoteService(db)
-    trace_id = get_trace_id(request)
     return service.create_customer_note(customer_id, note, trace_id)
 
 
