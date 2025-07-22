@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from uuid import UUID
 
 from app.db.database import get_db
-from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
 from app.services.customer_service import CustomerService
+from app.api.dependencies import User, require_customer_or_admin
+from pathlib import Path
+from uuid import uuid4
 
 router = APIRouter()
 
@@ -73,6 +75,37 @@ def update_customer(
             detail="Customer not found"
         )
     return updated_customer
+
+
+@router.post("/{customer_id}/avatar", response_model=CustomerResponse)
+async def upload_avatar(
+    customer_id: UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_customer_or_admin)
+):
+    """Upload and set a customer's avatar image."""
+    if file.content_type not in ("image/jpeg", "image/png"):
+        raise HTTPException(status_code=400, detail="Invalid file type")
+
+    contents = await file.read()
+    if len(contents) > 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large")
+
+    extension = "jpg" if file.content_type == "image/jpeg" else "png"
+    filename = f"{customer_id}_{uuid4()}.{extension}"
+    upload_dir = Path("uploads")
+    upload_dir.mkdir(exist_ok=True)
+    path = upload_dir / filename
+    with path.open("wb") as f:
+        f.write(contents)
+
+    avatar_url = f"/uploads/{filename}"
+    customer_service = CustomerService(db)
+    customer = customer_service.update_avatar(customer_id, avatar_url)
+    if not customer:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found")
+    return customer
 
 
 @router.delete("/{customer_id}", status_code=status.HTTP_204_NO_CONTENT)
