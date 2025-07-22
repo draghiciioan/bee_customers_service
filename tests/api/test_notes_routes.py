@@ -1,7 +1,6 @@
 import importlib
 import uuid
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
 import pytest
 
 
@@ -55,12 +54,9 @@ def test_note_routes(db_session, auth_headers, internal_headers):
     assert resp.json() == []
 
 
-import pytest
-
-
 @pytest.mark.asyncio
 async def test_note_routes_async(db_session, auth_headers, internal_headers, async_client):
-    main_module = importlib.reload(__import__('main'))
+    importlib.reload(__import__('main'))
     payload = {
         'user_id': str(uuid.uuid4()),
         'business_id': str(uuid.uuid4()),
