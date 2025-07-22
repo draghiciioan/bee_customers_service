@@ -179,6 +179,7 @@ This service integrates with:
 
 - **2025-07-22**: Added explicit indexes for `Customer` model (`business_id`, `user_id`, `full_name`, `phone`). Existing deployments require table recreation to apply these indexes.
 - **2025-07-22**: Introduced `RABBITMQ_URL` and `RABBITMQ_EXCHANGE` settings.
+- **2025-07-23**: Customer, tag and note actions now publish events with trace IDs.
 
 ## License
 
@@ -190,4 +191,4 @@ This service integrates with:
 
 ---
 
-Last updated: July 22, 2025
+Last updated: July 23, 2025

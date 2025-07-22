@@ -10,9 +10,16 @@ class TagService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_tag(self, tag: TagCreate) -> CustomerTag:
+    def create_tag(self, tag: TagCreate, trace_id: str) -> CustomerTag:
         """Create a single tag for a customer."""
-        return self.create_tags(tag.customer_id, [tag.label], tag.color, tag.priority, tag.created_by)[0]
+        return self.create_tags(
+            tag.customer_id,
+            [tag.label],
+            tag.color,
+            tag.priority,
+            tag.created_by,
+            trace_id,
+        )[0]
 
     def create_tags(
         self,
@@ -21,6 +28,7 @@ class TagService:
         color: Optional[str] = None,
         priority: int = 0,
         created_by: Optional[UUID] = None,
+        trace_id: str = "",
     ) -> List[CustomerTag]:
         """Create multiple tags in one call."""
         db_tags = [
@@ -37,6 +45,18 @@ class TagService:
         self.db.commit()
         for tag in db_tags:
             self.db.refresh(tag)
+
+        from app.services.event_publisher import publish_event_sync
+
+        for tag in db_tags:
+            payload = {
+                "customer_id": str(tag.customer_id),
+                "tag_id": str(tag.id),
+                "label": tag.label,
+                "trace_id": trace_id,
+            }
+            publish_event_sync("v1.customer.tagged", payload, trace_id)
+
         return db_tags
 
     def get_tag(self, tag_id: UUID) -> Optional[CustomerTag]:

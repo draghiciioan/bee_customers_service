@@ -13,7 +13,7 @@ def create_sample_customer(service: CustomerService) -> uuid.UUID:
         gender=Gender.MALE,
         avatar_url=None,
     )
-    customer = service.create_customer(data)
+    customer = service.create_customer(data, "test")
     return customer.id
 
 
@@ -29,7 +29,7 @@ def test_update_customer(db_session):
     service = CustomerService(db_session)
     customer_id = create_sample_customer(service)
     update_data = CustomerUpdate(full_name="Jane Doe")
-    updated = service.update_customer(customer_id, update_data)
+    updated = service.update_customer(customer_id, update_data, "trace")
     assert updated.full_name == "Jane Doe"
 
 
