@@ -11,7 +11,7 @@ class CustomerService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_customer(self, customer: CustomerCreate) -> Customer:
+    def create_customer(self, customer: CustomerCreate, trace_id: str) -> Customer:
         """
         Create a new customer in the database.
         """
@@ -27,6 +27,17 @@ class CustomerService:
         self.db.add(db_customer)
         self.db.commit()
         self.db.refresh(db_customer)
+
+        from app.services.event_publisher import publish_event_sync
+
+        payload = {
+            "id": str(db_customer.id),
+            "user_id": str(db_customer.user_id),
+            "business_id": str(db_customer.business_id),
+            "trace_id": trace_id,
+        }
+        publish_event_sync("v1.customer.created", payload, trace_id)
+
         return db_customer
 
     def get_customer(self, customer_id: UUID) -> Optional[Customer]:
@@ -59,7 +70,9 @@ class CustomerService:
 
         return db_query.offset(skip).limit(limit).all()
 
-    def update_customer(self, customer_id: UUID, customer_data: CustomerUpdate) -> Optional[Customer]:
+    def update_customer(
+        self, customer_id: UUID, customer_data: CustomerUpdate, trace_id: str
+    ) -> Optional[Customer]:
         """
         Update a customer's information.
         """
@@ -68,17 +81,31 @@ class CustomerService:
             return None
             
         # Update only the fields that are provided
-        update_data = customer_data.dict(exclude_unset=True)
+        update_data = customer_data.model_dump(exclude_unset=True)
         
         # Handle gender enum conversion
         if "gender" in update_data and update_data["gender"] is not None:
             update_data["gender"] = update_data["gender"].value
             
+        fields_changed = []
         for key, value in update_data.items():
-            setattr(db_customer, key, value)
+            if getattr(db_customer, key) != value:
+                setattr(db_customer, key, value)
+                fields_changed.append(key)
             
         self.db.commit()
         self.db.refresh(db_customer)
+
+        if fields_changed:
+            from app.services.event_publisher import publish_event_sync
+
+            payload = {
+                "id": str(db_customer.id),
+                "fields_changed": fields_changed,
+                "trace_id": trace_id,
+            }
+            publish_event_sync("v1.customer.updated", payload, trace_id)
+
         return db_customer
 
     def delete_customer(self, customer_id: UUID) -> bool:

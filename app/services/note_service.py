@@ -10,7 +10,7 @@ class NoteService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_note(self, note: NoteCreate) -> CustomerNote:
+    def create_note(self, note: NoteCreate, trace_id: str) -> CustomerNote:
         """
         Create a new note for a customer.
         """
@@ -22,10 +22,20 @@ class NoteService:
         self.db.add(db_note)
         self.db.commit()
         self.db.refresh(db_note)
+
+        from app.services.event_publisher import publish_event_sync
+
+        payload = {
+            "customer_id": str(db_note.customer_id),
+            "note_id": str(db_note.id),
+            "trace_id": trace_id,
+        }
+        publish_event_sync("v1.customer.note_added", payload, trace_id)
+
         return db_note
 
     def create_customer_note(
-        self, customer_id: UUID, payload: NoteCreatePayload
+        self, customer_id: UUID, payload: NoteCreatePayload, trace_id: str
     ) -> CustomerNote:
         """Create a note when the customer_id is provided separately."""
         data = NoteCreate(
@@ -33,7 +43,7 @@ class NoteService:
             content=payload.content,
             created_by=payload.created_by,
         )
-        return self.create_note(data)
+        return self.create_note(data, trace_id)
 
     def get_note(self, note_id: UUID) -> Optional[CustomerNote]:
         """

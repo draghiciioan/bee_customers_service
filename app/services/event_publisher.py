@@ -35,3 +35,13 @@ async def publish_event(event_name: str, payload: dict, trace_id: str) -> None:
         finally:
             if connection:
                 await connection.close()
+
+
+def publish_event_sync(event_name: str, payload: dict, trace_id: str) -> None:
+    """Synchronous wrapper for publish_event."""
+    try:
+        asyncio.run(publish_event(event_name, payload, trace_id))
+    except Exception:
+        # Event publishing failures should not break main flow
+        pass
+

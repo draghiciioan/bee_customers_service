@@ -7,6 +7,8 @@ from app.db.database import get_db
 from app.schemas.tag import TagCreate, TagResponse, TagsCreate
 from app.services.tag_service import TagService
 from app.api.dependencies import User, require_admin
+from app.core.tracing import get_trace_id
+from fastapi import Request
 
 router = APIRouter()
 customer_router = APIRouter()
@@ -15,6 +17,7 @@ customer_router = APIRouter()
 @router.post("/", response_model=TagResponse, status_code=status.HTTP_201_CREATED)
 def create_tag(
     tag: TagCreate,
+    request: Request,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
@@ -22,7 +25,8 @@ def create_tag(
     Create a new tag for a customer.
     """
     tag_service = TagService(db)
-    return tag_service.create_tag(tag)
+    trace_id = get_trace_id(request)
+    return tag_service.create_tag(tag, trace_id)
 
 
 @router.get("/customer/{customer_id}", response_model=List[TagResponse])
@@ -65,13 +69,15 @@ def delete_tag(
 def create_customer_tags(
     customer_id: UUID,
     payload: TagsCreate,
+    request: Request,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
     """Create one or multiple tags for a customer."""
     tag_service = TagService(db)
     labels = [payload.label] if payload.label else (payload.labels or [])
-    created_tags = tag_service.create_tags(customer_id, labels)
+    trace_id = get_trace_id(request)
+    created_tags = tag_service.create_tags(customer_id, labels, trace_id=trace_id)
     return created_tags
 
 

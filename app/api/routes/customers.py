@@ -6,6 +6,8 @@ from uuid import UUID
 from app.db.database import get_db
 from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
 from app.services.customer_service import CustomerService
+from app.core.tracing import get_trace_id
+from fastapi import Request
 from app.api.dependencies import (
     User,
     require_customer_or_admin,
@@ -21,6 +23,7 @@ router = APIRouter()
 @router.post("/", response_model=CustomerResponse, status_code=status.HTTP_201_CREATED)
 def create_customer(
     customer: CustomerCreate,
+    request: Request,
     db: Session = Depends(get_db),
     _: User = Depends(require_internal_service),
 ):
@@ -28,7 +31,8 @@ def create_customer(
     Create a new customer profile.
     """
     customer_service = CustomerService(db)
-    return customer_service.create_customer(customer)
+    trace_id = get_trace_id(request)
+    return customer_service.create_customer(customer, trace_id)
 
 
 @router.get("/{customer_id}", response_model=CustomerResponse)
@@ -69,6 +73,7 @@ def get_customers(
 def update_customer(
     customer_id: UUID,
     customer: CustomerUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     _: User = Depends(require_customer_or_admin),
 ):
@@ -76,7 +81,10 @@ def update_customer(
     Update a customer's information.
     """
     customer_service = CustomerService(db)
-    updated_customer = customer_service.update_customer(customer_id, customer)
+    trace_id = get_trace_id(request)
+    updated_customer = customer_service.update_customer(
+        customer_id, customer, trace_id
+    )
     if not updated_customer:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

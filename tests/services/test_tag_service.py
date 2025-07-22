@@ -15,7 +15,7 @@ def create_sample_customer(service: CustomerService) -> uuid.UUID:
         gender=Gender.MALE,
         avatar_url=None,
     )
-    customer = service.create_customer(data)
+    customer = service.create_customer(data, "test")
     return customer.id
 
 
@@ -31,7 +31,7 @@ def test_create_and_get_tag(db_session):
         priority=1,
         created_by=uuid.uuid4(),
     )
-    created = tag_service.create_tag(tag_data)
+    created = tag_service.create_tag(tag_data, "trace")
 
     retrieved = tag_service.get_tag(created.id)
     assert retrieved is not None
@@ -51,7 +51,7 @@ def test_create_multiple_tags(db_session):
 
     tag_service = TagService(db_session)
     labels = ["VIP", "Regular"]
-    created_tags = tag_service.create_tags(customer_id, labels)
+    created_tags = tag_service.create_tags(customer_id, labels, trace_id="trace")
     assert len(created_tags) == 2
 
     retrieved = tag_service.get_tags_by_customer(customer_id)
