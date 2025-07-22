@@ -3,7 +3,7 @@ import uuid
 from fastapi.testclient import TestClient
 from pathlib import Path
 
-def test_crud_workflow(db_session):
+def test_crud_workflow(db_session, auth_headers, internal_headers):
     main_module = importlib.reload(__import__('main'))
     client = TestClient(main_module.app)
     payload = {
@@ -15,26 +15,30 @@ def test_crud_workflow(db_session):
         'gender': 'male',
         'avatar_url': None,
     }
-    response = client.post('/api/customers/', json=payload)
+    response = client.post('/api/customers/', json=payload, headers=internal_headers)
     assert response.status_code == 201
     customer_id = response.json()['id']
 
-    response = client.get(f'/api/customers/{customer_id}')
+    response = client.get(f'/api/customers/{customer_id}', headers=auth_headers)
     assert response.status_code == 200
     assert response.json()['email'] == 'john@example.com'
 
-    response = client.patch(f'/api/customers/{customer_id}', json={'full_name': 'Jane Doe'})
+    response = client.patch(
+        f'/api/customers/{customer_id}',
+        json={'full_name': 'Jane Doe'},
+        headers=auth_headers,
+    )
     assert response.status_code == 200
     assert response.json()['full_name'] == 'Jane Doe'
 
-    response = client.delete(f'/api/customers/{customer_id}')
+    response = client.delete(f'/api/customers/{customer_id}', headers=auth_headers)
     assert response.status_code == 204
 
-    response = client.get(f'/api/customers/{customer_id}')
+    response = client.get(f'/api/customers/{customer_id}', headers=auth_headers)
     assert response.status_code == 404
 
 
-def create_customer(client):
+def create_customer(client, headers):
     payload = {
         'user_id': str(uuid.uuid4()),
         'business_id': str(uuid.uuid4()),
@@ -44,15 +48,15 @@ def create_customer(client):
         'gender': 'male',
         'avatar_url': None,
     }
-    resp = client.post('/api/customers/', json=payload)
+    resp = client.post('/api/customers/', json=payload, headers=headers)
     assert resp.status_code == 201
     return resp.json()['id']
 
 
-def test_upload_avatar_success(db_session, tmp_path):
+def test_upload_avatar_success(db_session, tmp_path, auth_headers, internal_headers):
     main_module = importlib.reload(__import__('main'))
     client = TestClient(main_module.app)
-    customer_id = create_customer(client)
+    customer_id = create_customer(client, internal_headers)
 
     file_path = tmp_path / 'avatar.png'
     file_path.write_bytes(b'\x89PNG\r\n\x1a\n')
@@ -60,7 +64,8 @@ def test_upload_avatar_success(db_session, tmp_path):
     with file_path.open('rb') as f:
         resp = client.post(
             f'/api/customers/{customer_id}/avatar',
-            files={'file': ('avatar.png', f, 'image/png')}
+            files={'file': ('avatar.png', f, 'image/png')},
+            headers=auth_headers,
         )
 
     assert resp.status_code == 200
@@ -69,10 +74,10 @@ def test_upload_avatar_success(db_session, tmp_path):
     assert stored.exists()
 
 
-def test_upload_avatar_invalid_file(db_session, tmp_path):
+def test_upload_avatar_invalid_file(db_session, tmp_path, auth_headers, internal_headers):
     main_module = importlib.reload(__import__('main'))
     client = TestClient(main_module.app)
-    customer_id = create_customer(client)
+    customer_id = create_customer(client, internal_headers)
 
     invalid_path = tmp_path / 'avatar.txt'
     invalid_path.write_text('not an image')
@@ -80,13 +85,14 @@ def test_upload_avatar_invalid_file(db_session, tmp_path):
     with invalid_path.open('rb') as f:
         resp = client.post(
             f'/api/customers/{customer_id}/avatar',
-            files={'file': ('avatar.txt', f, 'text/plain')}
+            files={'file': ('avatar.txt', f, 'text/plain')},
+            headers=auth_headers,
         )
 
     assert resp.status_code == 400
 
 
-def test_get_customers_query_param(db_session):
+def test_get_customers_query_param(db_session, auth_headers, internal_headers):
     main_module = importlib.reload(__import__('main'))
     client = TestClient(main_module.app)
 
@@ -99,19 +105,19 @@ def test_get_customers_query_param(db_session):
         'gender': 'female',
         'avatar_url': None,
     }
-    resp = client.post('/api/customers/', json=payload)
+    resp = client.post('/api/customers/', json=payload, headers=internal_headers)
     assert resp.status_code == 201
 
-    resp = client.get('/api/customers/?query=Alice')
+    resp = client.get('/api/customers/?query=Alice', headers=auth_headers)
     assert resp.status_code == 200
     assert any(c['email'] == 'alice@example.com' for c in resp.json())
 
-    alias_resp = client.get('/api/customers/?search=Alice')
+    alias_resp = client.get('/api/customers/?search=Alice', headers=auth_headers)
     assert alias_resp.status_code == 200
     assert resp.json() == alias_resp.json()
 
 
-def test_stats_alias(db_session):
+def test_stats_alias(db_session, auth_headers, internal_headers):
     """Ensure the /stats alias returns the same data as /statistics."""
     main_module = importlib.reload(__import__('main'))
     client = TestClient(main_module.app)
@@ -125,14 +131,14 @@ def test_stats_alias(db_session):
         'gender': 'male',
         'avatar_url': None,
     }
-    resp = client.post('/api/customers/', json=payload)
+    resp = client.post('/api/customers/', json=payload, headers=internal_headers)
     assert resp.status_code == 201
     customer_id = resp.json()['id']
 
-    stats_resp = client.get(f'/api/customers/{customer_id}/stats')
+    stats_resp = client.get(f'/api/customers/{customer_id}/stats', headers=auth_headers)
     assert stats_resp.status_code == 200
 
-    old_resp = client.get(f'/api/customers/{customer_id}/statistics')
+    old_resp = client.get(f'/api/customers/{customer_id}/statistics', headers=auth_headers)
     assert old_resp.status_code == 200
     assert stats_resp.json() == old_resp.json()
 

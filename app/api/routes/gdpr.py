@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import Dict
-from uuid import UUID
 
 from app.db.database import get_db
 from app.services.gdpr_service import GDPRService

@@ -3,7 +3,7 @@ import uuid
 from fastapi.testclient import TestClient
 
 
-def test_create_and_get_tags(db_session):
+def test_create_and_get_tags(db_session, auth_headers, internal_headers):
     main_module = importlib.reload(__import__('main'))
     client = TestClient(main_module.app)
 
@@ -16,7 +16,7 @@ def test_create_and_get_tags(db_session):
         'gender': 'male',
         'avatar_url': None,
     }
-    resp = client.post('/api/customers/', json=customer_payload)
+    resp = client.post('/api/customers/', json=customer_payload, headers=internal_headers)
     assert resp.status_code == 201
     customer_id = resp.json()['id']
 
@@ -27,14 +27,14 @@ def test_create_and_get_tags(db_session):
         'priority': 5,
         'created_by': str(uuid.uuid4()),
     }
-    resp = client.post('/api/customers/tags/', json=tag_payload)
+    resp = client.post('/api/customers/tags/', json=tag_payload, headers=auth_headers)
     assert resp.status_code == 201
     tag_id = resp.json()['id']
     assert resp.json()['color'] == 'red'
     assert resp.json()['priority'] == 5
     assert resp.json()['created_by'] == tag_payload['created_by']
 
-    resp = client.get(f'/api/customers/tags/customer/{customer_id}')
+    resp = client.get(f'/api/customers/tags/customer/{customer_id}', headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
@@ -44,7 +44,7 @@ def test_create_and_get_tags(db_session):
     assert data[0]['created_by'] == tag_payload['created_by']
 
 
-def test_create_and_delete_tags_new_routes(db_session):
+def test_create_and_delete_tags_new_routes(db_session, auth_headers, internal_headers):
     main_module = importlib.reload(__import__('main'))
     client = TestClient(main_module.app)
 
@@ -57,11 +57,15 @@ def test_create_and_delete_tags_new_routes(db_session):
         'gender': 'female',
         'avatar_url': None,
     }
-    resp = client.post('/api/customers/', json=customer_payload)
+    resp = client.post('/api/customers/', json=customer_payload, headers=internal_headers)
     assert resp.status_code == 201
     customer_id = resp.json()['id']
 
-    resp = client.post(f'/api/customers/{customer_id}/tags', json={'label': 'VIP'})
+    resp = client.post(
+        f'/api/customers/{customer_id}/tags',
+        json={'label': 'VIP'},
+        headers=auth_headers,
+    )
     assert resp.status_code == 201
     assert resp.json()[0]['label'] == 'VIP'
     tag_id = resp.json()[0]['id']
@@ -69,16 +73,18 @@ def test_create_and_delete_tags_new_routes(db_session):
     resp = client.post(
         f'/api/customers/{customer_id}/tags',
         json={'labels': ['Frequent', 'Loyal']},
+        headers=auth_headers,
     )
     assert resp.status_code == 201
     assert len(resp.json()) == 2
 
     resp = client.delete(
-        f'/api/customers/{customer_id}/tags/{tag_id}'
+        f'/api/customers/{customer_id}/tags/{tag_id}',
+        headers=auth_headers,
     )
     assert resp.status_code == 204
 
-    resp = client.get(f'/api/customers/tags/customer/{customer_id}')
+    resp = client.get(f'/api/customers/tags/customer/{customer_id}', headers=auth_headers)
     assert resp.status_code == 200
     labels = [t['label'] for t in resp.json()]
     assert 'VIP' not in labels

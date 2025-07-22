@@ -1,10 +1,15 @@
 import os
 import importlib
 import sys
+import uuid
+
 import pytest
 import pytest_asyncio
+import jwt
 
 os.environ.setdefault("DATABASE_URL", "sqlite:///./test.db")
+
+from app.core.config import settings
 
 from app.db import database
 from app.db.database import Base
@@ -28,6 +33,26 @@ def db_session(tmp_path):
         yield session
     finally:
         session.close()
+
+
+@pytest.fixture()
+def auth_headers():
+    token = jwt.encode(
+        {"sub": str(uuid.uuid4()), "role": "admin_business"},
+        settings.SECRET_KEY,
+        algorithm=settings.ALGORITHM,
+    )
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture()
+def internal_headers():
+    token = jwt.encode(
+        {"sub": str(uuid.uuid4()), "role": "internal"},
+        settings.SECRET_KEY,
+        algorithm=settings.ALGORITHM,
+    )
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest_asyncio.fixture(scope="function")
