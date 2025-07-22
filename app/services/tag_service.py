@@ -32,7 +32,31 @@ class TagService:
         created_by: Optional[UUID] = None,
         trace_id: str = "",
     ) -> List[CustomerTag]:
-        """Create multiple tags in one call."""
+        """Create multiple tags in one call.
+
+        Raises ``ValueError`` if any requested label already exists for the
+        customer or if duplicate labels are provided in the request.
+        """
+
+        # Check for duplicates in the payload
+        unique_labels = list(dict.fromkeys(labels))
+        if len(unique_labels) != len(labels):
+            raise ValueError("Duplicate labels provided")
+
+        # Check for existing tags with the same labels
+        existing = (
+            self.db.query(CustomerTag.label)
+            .filter(
+                CustomerTag.customer_id == customer_id,
+                CustomerTag.label.in_(unique_labels),
+            )
+            .all()
+        )
+        existing_labels = {row.label for row in existing}
+        if existing_labels:
+            joined = ", ".join(sorted(existing_labels))
+            raise ValueError(f"Tag(s) already exist: {joined}")
+
         db_tags = [
             CustomerTag(
                 customer_id=customer_id,
@@ -41,7 +65,7 @@ class TagService:
                 priority=priority,
                 created_by=created_by,
             )
-            for lbl in labels
+            for lbl in unique_labels
         ]
         self.db.add_all(db_tags)
         self.db.commit()

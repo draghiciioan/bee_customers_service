@@ -88,3 +88,35 @@ def test_create_and_delete_tags_new_routes(db_session, auth_headers, internal_he
     assert resp.status_code == 200
     labels = [t['label'] for t in resp.json()]
     assert 'VIP' not in labels
+
+
+def test_duplicate_tags_returns_400(db_session, auth_headers, internal_headers):
+    main_module = importlib.reload(__import__('main'))
+    client = TestClient(main_module.app)
+
+    customer_payload = {
+        'user_id': str(uuid.uuid4()),
+        'business_id': str(uuid.uuid4()),
+        'full_name': 'Dup User',
+        'email': 'dup@example.com',
+        'phone': '0712345678',
+        'gender': 'male',
+        'avatar_url': None,
+    }
+    resp = client.post('/api/customers/', json=customer_payload, headers=internal_headers)
+    assert resp.status_code == 201
+    customer_id = resp.json()['id']
+
+    resp = client.post(
+        f'/api/customers/{customer_id}/tags',
+        json={'label': 'VIP'},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201
+
+    resp = client.post(
+        f'/api/customers/{customer_id}/tags',
+        json={'label': 'VIP'},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 400
