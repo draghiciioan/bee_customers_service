@@ -11,20 +11,33 @@ class TagService:
         self.db = db
 
     def create_tag(self, tag: TagCreate) -> CustomerTag:
-        """
-        Create a new tag for a customer.
-        """
-        db_tag = CustomerTag(
-            customer_id=tag.customer_id,
-            label=tag.label,
-            color=tag.color,
-            priority=tag.priority,
-            created_by=tag.created_by,
-        )
-        self.db.add(db_tag)
+        """Create a single tag for a customer."""
+        return self.create_tags(tag.customer_id, [tag.label], tag.color, tag.priority, tag.created_by)[0]
+
+    def create_tags(
+        self,
+        customer_id: UUID,
+        labels: List[str],
+        color: Optional[str] = None,
+        priority: int = 0,
+        created_by: Optional[UUID] = None,
+    ) -> List[CustomerTag]:
+        """Create multiple tags in one call."""
+        db_tags = [
+            CustomerTag(
+                customer_id=customer_id,
+                label=lbl,
+                color=color,
+                priority=priority,
+                created_by=created_by,
+            )
+            for lbl in labels
+        ]
+        self.db.add_all(db_tags)
         self.db.commit()
-        self.db.refresh(db_tag)
-        return db_tag
+        for tag in db_tags:
+            self.db.refresh(tag)
+        return db_tags
 
     def get_tag(self, tag_id: UUID) -> Optional[CustomerTag]:
         """
