@@ -153,7 +153,13 @@ Response
 }
 ```
 
-Environment variables: file uploads currently use the local `uploads/` directory. No dedicated environment variables are defined for this feature.
+### Environment Variables
+
+- `DATABASE_URL` - PostgreSQL connection string.
+- `RABBITMQ_URL` - RabbitMQ connection URL.
+- `RABBITMQ_EXCHANGE` - Exchange used for publishing events (`bee.customers.events`).
+
+File uploads currently use the local `uploads/` directory. No dedicated environment variables are defined for this feature.
 
 ## Integration with Other Services
 
@@ -172,6 +178,7 @@ This service integrates with:
 ## Changelog
 
 - **2025-07-22**: Added explicit indexes for `Customer` model (`business_id`, `user_id`, `full_name`, `phone`). Existing deployments require table recreation to apply these indexes.
+- **2025-07-22**: Introduced `RABBITMQ_URL` and `RABBITMQ_EXCHANGE` settings.
 
 ## License
 
