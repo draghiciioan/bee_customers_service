@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     AUTH_SERVICE_URL: Optional[str] = os.getenv("AUTH_SERVICE_URL", "http://localhost:8001")
     ORDERS_SERVICE_URL: Optional[str] = os.getenv("ORDERS_SERVICE_URL", "http://localhost:8002")
     SCHEDULING_SERVICE_URL: Optional[str] = os.getenv("SCHEDULING_SERVICE_URL", "http://localhost:8003")
+
+    # RabbitMQ settings
+    RABBITMQ_URL: str = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+    RABBITMQ_EXCHANGE: str = "bee.customers.events"
     
     class Config:
         env_file = ".env"
