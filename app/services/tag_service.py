@@ -16,7 +16,10 @@ class TagService:
         """
         db_tag = CustomerTag(
             customer_id=tag.customer_id,
-            label=tag.label
+            label=tag.label,
+            color=tag.color,
+            priority=tag.priority,
+            created_by=tag.created_by,
         )
         self.db.add(db_tag)
         self.db.commit()
