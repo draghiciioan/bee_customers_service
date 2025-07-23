@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import or_, select
+from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 from uuid import UUID
 import logging
@@ -46,7 +47,19 @@ class CustomerService:
             avatar_url=customer.avatar_url,
         )
         self.db.add(db_customer)
-        await self.db.commit()
+        try:
+            await self.db.commit()
+        except IntegrityError as exc:
+            await self.db.rollback()
+            self.logger.warning(
+                "Customer already exists",
+                extra={
+                    "user_id": str(customer.user_id),
+                    "business_id": str(customer.business_id),
+                    "trace_id": trace_id,
+                },
+            )
+            raise ValueError("Customer already exists") from exc
         await self.db.refresh(db_customer)
 
         self.logger.info(
