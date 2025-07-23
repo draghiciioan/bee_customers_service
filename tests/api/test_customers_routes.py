@@ -87,3 +87,27 @@ async def test_stats_endpoint(db_session, auth_headers, internal_headers, async_
     assert stats_resp.status_code == 200
     assert 'total_orders' in stats_resp.json()
 
+
+@pytest.mark.asyncio
+async def test_duplicate_customer_returns_409(db_session, internal_headers, async_client):
+    importlib.reload(__import__('main'))
+    client = async_client
+    common_user = str(uuid.uuid4())
+    common_business = str(uuid.uuid4())
+
+    payload = {
+        'user_id': common_user,
+        'business_id': common_business,
+        'full_name': 'Dup User',
+        'email': 'dup@example.com',
+        'phone': '0712345678',
+        'gender': 'male',
+        'avatar_url': None,
+    }
+
+    first = await client.post('/api/customers/', json=payload, headers=internal_headers)
+    assert first.status_code == 201
+
+    second = await client.post('/api/customers/', json=payload, headers=internal_headers)
+    assert second.status_code == 409
+

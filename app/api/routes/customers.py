@@ -31,7 +31,13 @@ async def create_customer(
     Create a new customer profile.
     """
     customer_service = CustomerService(db)
-    return await customer_service.create_customer(customer, trace_id)
+    try:
+        return await customer_service.create_customer(customer, trace_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc)
+        ) from exc
 
 
 @router.get("/{customer_id}", response_model=CustomerResponse)

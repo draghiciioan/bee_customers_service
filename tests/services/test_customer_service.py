@@ -208,3 +208,25 @@ async def test_auth_service_called_on_phone_change(db_session, monkeypatch):
     url, data = called[0]
     assert url.endswith(f"/api/users/{user_id}")
     assert data == {"phone": "0799999999"}
+
+
+@pytest.mark.asyncio
+async def test_create_duplicate_customer_returns_value_error(db_session):
+    service = CustomerService(db_session)
+    user_id = uuid.uuid4()
+    business_id = uuid.uuid4()
+
+    data = CustomerCreate(
+        user_id=user_id,
+        business_id=business_id,
+        full_name="Dup User",
+        email="dup@example.com",
+        phone="0712345678",
+        gender=Gender.MALE,
+        avatar_url=None,
+    )
+
+    await service.create_customer(data, "trace")
+
+    with pytest.raises(ValueError):
+        await service.create_customer(data, "trace")
