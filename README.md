@@ -70,7 +70,7 @@ Check the **Actions** tab or your pull request checks to see the results.
    ```
 The `.env.example` file lists all supported settings.
 
-4. Initialize the database schema using migrations or a dedicated setup script. Example with Alembic:
+4. Initialize the database schema using Alembic migrations:
    ```bash
    poetry run alembic upgrade head
    ```
@@ -91,8 +91,9 @@ The `.env.example` file lists all supported settings.
    docker run --env-file .env -p 8007:8007 bee_customers_service
    ```
 
-3. **Alternatively, use Docker Compose:**
-   ```
+3. **Alternatively, use Docker Compose (apply migrations first):**
+   ```bash
+   docker-compose run --rm bee_customers_service alembic upgrade head
    docker-compose up -d
    ```
 
