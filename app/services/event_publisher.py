@@ -2,6 +2,7 @@ import asyncio
 import json
 
 import aio_pika
+import redis
 
 from app.core.config import settings
 
@@ -37,11 +38,27 @@ async def publish_event(event_name: str, payload: dict, trace_id: str) -> None:
                 await connection.close()
 
 
+def _store_failed_event(event_name: str, payload: dict, trace_id: str) -> None:
+    """Store failed event payload in Redis for later processing."""
+    if not settings.REDIS_URL:
+        return
+    try:
+        client = redis.from_url(settings.REDIS_URL)
+        data = json.dumps({
+            "event": event_name,
+            "payload": payload,
+            "trace_id": trace_id,
+        })
+        client.rpush("failed_events", data)
+    except Exception:
+        # Storing failures should not crash the app
+        pass
+
+
 def publish_event_sync(event_name: str, payload: dict, trace_id: str) -> None:
-    """Synchronous wrapper for publish_event."""
+    """Synchronous wrapper for :func:`publish_event` with Redis backup."""
     try:
         asyncio.run(publish_event(event_name, payload, trace_id))
     except Exception:
-        # Event publishing failures should not break main flow
-        pass
+        _store_failed_event(event_name, payload, trace_id)
 

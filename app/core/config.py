@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     RABBITMQ_URL: str = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
     RABBITMQ_EXCHANGE: str = "bee.customers.events"
 
+    # Redis settings for local queueing
+    REDIS_URL: Optional[str] = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
     class Config:
         env_file = ".env"
         case_sensitive = True

@@ -20,6 +20,9 @@ dependencies = [
     "prometheus-fastapi-instrumentator (>=7.1.0,<8.0.0)"
 ]
 
+[project.optional-dependencies]
+redis = ["redis (>=4.0.0,<5.0.0)"]
+
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
