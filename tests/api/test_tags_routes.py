@@ -123,3 +123,58 @@ async def test_duplicate_tags_returns_400(db_session, auth_headers, internal_hea
         headers=auth_headers,
     )
     assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_delete_tag_wrong_customer_returns_404(db_session, auth_headers, internal_headers, async_client):
+    importlib.reload(__import__('main'))
+    client = async_client
+
+    # Create first customer and tag
+    payload1 = {
+        'user_id': str(uuid.uuid4()),
+        'business_id': str(uuid.uuid4()),
+        'full_name': 'Owner',
+        'email': 'owner@example.com',
+        'phone': '0712345678',
+        'gender': 'male',
+        'avatar_url': None,
+    }
+    resp = await client.post('/api/customers/', json=payload1, headers=internal_headers)
+    assert resp.status_code == 201
+    customer_id1 = resp.json()['id']
+
+    resp = await client.post(
+        f'/api/customers/{customer_id1}/tags',
+        json={'label': 'VIP'},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201
+    tag_id = resp.json()[0]['id']
+
+    # Create another customer
+    payload2 = {
+        'user_id': str(uuid.uuid4()),
+        'business_id': str(uuid.uuid4()),
+        'full_name': 'Other',
+        'email': 'other@example.com',
+        'phone': '0712345678',
+        'gender': 'female',
+        'avatar_url': None,
+    }
+    resp = await client.post('/api/customers/', json=payload2, headers=internal_headers)
+    assert resp.status_code == 201
+    customer_id2 = resp.json()['id']
+
+    # Attempt deletion with wrong customer_id
+    resp = await client.delete(
+        f'/api/customers/{customer_id2}/tags/{tag_id}',
+        headers=auth_headers,
+    )
+    assert resp.status_code == 404
+
+    # Verify tag still exists for original customer
+    resp = await client.get(f'/api/customers/tags/customer/{customer_id1}', headers=auth_headers)
+    assert resp.status_code == 200
+    labels = [t['id'] for t in resp.json()]
+    assert tag_id in labels

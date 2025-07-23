@@ -59,6 +59,7 @@ async def test_logging_on_note_creation(db_session, monkeypatch):
         captured.append((event, data, trace_id))
 
     monkeypatch.setattr("app.services.log_service.send_log", dummy_log)
+    monkeypatch.setattr("app.services.note_service.send_log", dummy_log)
 
     payload = NoteCreatePayload(content="hello", created_by=uuid.uuid4())
     note = await note_service.create_customer_note(customer_id, payload, "trace_log")

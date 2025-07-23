@@ -95,7 +95,7 @@ async def delete_customer_tag(
 ):
     """Delete a tag from a specific customer."""
     tag_service = TagService(db)
-    success = await tag_service.delete_tag(tag_id)
+    success = await tag_service.delete_customer_tag(customer_id, tag_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
