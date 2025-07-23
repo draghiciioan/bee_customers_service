@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
@@ -23,6 +23,7 @@ def decode_jwt(token: str) -> dict:
 
 
 def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ) -> User:
     """Return the current user extracted from the Authorization header."""
@@ -33,7 +34,9 @@ def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload") from exc
     role = payload.get("role", "customer")
     is_admin = role.startswith("admin")
-    return User(id=user_id, is_admin=is_admin, role=role)
+    user = User(id=user_id, is_admin=is_admin, role=role)
+    request.state.user = user
+    return user
 
 
 def require_admin(current_user: User = Depends(get_current_user)) -> User:

@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     )
     LOG_SERVICE_URL: Optional[str] = os.getenv("LOG_SERVICE_URL")
 
+    # Rate limiting
+    CUSTOMER_PATCH_RATE: str = os.getenv("CUSTOMER_PATCH_RATE", "5/minute")
+
     # RabbitMQ settings
     RABBITMQ_URL: str = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
     RABBITMQ_EXCHANGE: str = "bee.customers.events"

@@ -33,6 +33,7 @@ This microservice follows the BeeConect platform's microservice architecture:
 - **Containerization**: Docker
 - **CI/CD**: GitHub Actions
 - **Monitoring**: Prometheus, Grafana
+- **Rate Limiting**: slowapi
 
 ## Setup and Installation
 
@@ -159,6 +160,7 @@ Response
 - `RABBITMQ_URL` - RabbitMQ connection URL.
 - `RABBITMQ_EXCHANGE` - Exchange used for publishing events (`bee.customers.events`).
 - `LOG_SERVICE_URL` - Optional endpoint for forwarding structured logs.
+- `CUSTOMER_PATCH_RATE` - Rate limit for `PATCH /customers/{id}` (default `5/minute`).
 
 File uploads currently use the local `uploads/` directory. No dedicated environment variables are defined for this feature.
 
@@ -232,6 +234,7 @@ via the required `RABBITMQ_URL` environment variable. All events are sent to the
 - **2025-07-22**: Introduced `RABBITMQ_URL` and `RABBITMQ_EXCHANGE` settings.
 - **2025-07-23**: Customer, tag and note actions now publish events with trace IDs.
 - **2025-07-23**: Added `LOG_SERVICE_URL` for forwarding logs to an external service.
+- **2025-07-24**: Added rate limiting for `PATCH /customers/{id}` using slowapi and `CUSTOMER_PATCH_RATE` setting.
 
 ## License
 
@@ -243,4 +246,4 @@ via the required `RABBITMQ_URL` environment variable. All events are sent to the
 
 ---
 
-Last updated: July 23, 2025
+Last updated: July 24, 2025
