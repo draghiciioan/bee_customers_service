@@ -1,6 +1,7 @@
 import os
 from pydantic_settings import BaseSettings
-from typing import Optional
+from pydantic import field_validator
+from typing import Optional, List
 
 
 class Settings(BaseSettings):
@@ -19,7 +20,19 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # CORS settings
-    CORS_ORIGINS: list = [origin.strip() for origin in os.getenv("CORS_ORIGINS", "*").split(",")]
+    CORS_ORIGINS: List[str] = []
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, value: Optional[str]) -> List[str]:
+        """Parse comma-separated origins from environment."""
+        if isinstance(value, str):
+            origins = [o.strip() for o in value.split(",") if o.strip()]
+        elif isinstance(value, list):
+            origins = value
+        else:
+            origins = []
+        return origins or ["http://localhost"]
 
     # External services
     AUTH_SERVICE_URL: Optional[str] = os.getenv(
