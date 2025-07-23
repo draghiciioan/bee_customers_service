@@ -15,8 +15,6 @@ from app.core.limiter import limiter
 # Initialize structured logging before anything else
 setup_logging()
 
-# Create tables in the database
-Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.PROJECT_VERSION,
