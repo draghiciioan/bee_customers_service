@@ -49,8 +49,12 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
 def require_customer_or_admin(
     current_user: User = Depends(get_current_user),
 ) -> User:
-    """Allow access to admins or regular customers."""
-    # For simplicity we do not verify the actual customer id in this demo
+    """Allow access only to admin or customer roles."""
+    if not (current_user.role.startswith("admin") or current_user.role == "customer"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Customer or admin role required",
+        )
     return current_user
 
 
