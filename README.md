@@ -27,6 +27,7 @@ This microservice follows the BeeConect platform's microservice architecture:
 - **Framework**: FastAPI
 - **ORM**: SQLAlchemy
 - **Database**: PostgreSQL (dedicated database)
+- **Async Driver**: `asyncpg` with SQLAlchemy's async engine
 - **Message Broker**: RabbitMQ
 - **Dependency Management**: Poetry
 - **Testing**: pytest, pytest-asyncio
@@ -308,6 +309,7 @@ Example:
 - **2025-07-25**: Documented role requirements, phone number format, tag uniqueness, and log forwarding details.
 - **2025-07-26**: Added JSON log formatter with `timestamp`, `level`, `service_name`, and `trace_id` fields.
 - **2025-07-27**: Added optional Redis queueing for failed events and management script `scripts/resend_failed_events.py`.
+- **2025-07-23**: Switched to asynchronous SQLAlchemy with `asyncpg`; all routes and services are now async.
 
 ## License
 
@@ -319,4 +321,4 @@ Example:
 
 ---
 
-Last updated: July 26, 2025
+Last updated: July 23, 2025

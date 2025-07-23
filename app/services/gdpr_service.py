@@ -1,4 +1,5 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete
 from typing import Dict, Optional
 from uuid import UUID
 
@@ -9,36 +10,46 @@ from app.models.customer_history import CustomerHistory
 
 
 class GDPRService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
-    def export_customer_data(self, user_id: UUID, business_id: UUID) -> Optional[Dict]:
+    async def export_customer_data(
+        self, user_id: UUID, business_id: UUID
+    ) -> Optional[Dict]:
         """
         Export all data for a specific customer (GDPR compliance).
         """
         # Get customer
-        customer = self.db.query(Customer).filter(
-            Customer.user_id == user_id,
-            Customer.business_id == business_id
-        ).first()
+        result = await self.db.execute(
+            select(Customer).where(
+                Customer.user_id == user_id,
+                Customer.business_id == business_id,
+            )
+        )
+        customer = result.scalars().first()
         
         if not customer:
             return None
             
         # Get customer tags
-        tags = self.db.query(CustomerTag).filter(
-            CustomerTag.customer_id == customer.id
-        ).all()
+        result = await self.db.execute(
+            select(CustomerTag).where(CustomerTag.customer_id == customer.id)
+        )
+        tags = result.scalars().all()
         
         # Get customer notes
-        notes = self.db.query(CustomerNote).filter(
-            CustomerNote.customer_id == customer.id
-        ).all()
+        result = await self.db.execute(
+            select(CustomerNote).where(CustomerNote.customer_id == customer.id)
+        )
+        notes = result.scalars().all()
         
         # Get customer history
-        history = self.db.query(CustomerHistory).filter(
-            CustomerHistory.customer_id == customer.id
-        ).first()
+        result = await self.db.execute(
+            select(CustomerHistory).where(
+                CustomerHistory.customer_id == customer.id
+            )
+        )
+        history = result.scalars().first()
         
         # Prepare export data
         export_data = {
@@ -89,36 +100,39 @@ class GDPRService:
             
         return export_data
 
-    def delete_customer_data(self, user_id: UUID, business_id: UUID) -> bool:
+    async def delete_customer_data(self, user_id: UUID, business_id: UUID) -> bool:
         """
         Delete all data for a specific customer (GDPR compliance).
         """
         # Get customer
-        customer = self.db.query(Customer).filter(
-            Customer.user_id == user_id,
-            Customer.business_id == business_id
-        ).first()
+        result = await self.db.execute(
+            select(Customer).where(
+                Customer.user_id == user_id,
+                Customer.business_id == business_id,
+            )
+        )
+        customer = result.scalars().first()
         
         if not customer:
             return False
             
         # Delete customer tags
-        self.db.query(CustomerTag).filter(
-            CustomerTag.customer_id == customer.id
-        ).delete()
+        await self.db.execute(
+            delete(CustomerTag).where(CustomerTag.customer_id == customer.id)
+        )
         
         # Delete customer notes
-        self.db.query(CustomerNote).filter(
-            CustomerNote.customer_id == customer.id
-        ).delete()
+        await self.db.execute(
+            delete(CustomerNote).where(CustomerNote.customer_id == customer.id)
+        )
         
         # Delete customer history
-        self.db.query(CustomerHistory).filter(
-            CustomerHistory.customer_id == customer.id
-        ).delete()
+        await self.db.execute(
+            delete(CustomerHistory).where(CustomerHistory.customer_id == customer.id)
+        )
         
         # Delete customer
-        self.db.delete(customer)
-        self.db.commit()
+        await self.db.delete(customer)
+        await self.db.commit()
         
         return True

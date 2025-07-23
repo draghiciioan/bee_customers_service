@@ -1,9 +1,9 @@
 import importlib
 import uuid
-from fastapi.testclient import TestClient
+import pytest
 
 
-def create_customer(client, headers):
+async def create_customer(client, headers):
     payload = {
         "user_id": str(uuid.uuid4()),
         "business_id": str(uuid.uuid4()),
@@ -13,26 +13,27 @@ def create_customer(client, headers):
         "gender": "male",
         "avatar_url": None,
     }
-    resp = client.post("/api/customers/", json=payload, headers=headers)
+    resp = await client.post("/api/customers/", json=payload, headers=headers)
     assert resp.status_code == 201
     return resp.json()["id"]
 
 
-def test_patch_rate_limit(db_session, auth_headers, internal_headers):
+@pytest.mark.asyncio
+async def test_patch_rate_limit(db_session, auth_headers, internal_headers, async_client):
     main_module = importlib.reload(__import__("main"))
-    client = TestClient(main_module.app)
+    client = async_client
 
-    customer_id = create_customer(client, internal_headers)
+    customer_id = await create_customer(client, internal_headers)
 
     for i in range(5):
-        resp = client.patch(
+        resp = await client.patch(
             f"/api/customers/{customer_id}",
             json={"full_name": f"User {i}"},
             headers=auth_headers,
         )
         assert resp.status_code == 200
 
-    resp = client.patch(
+    resp = await client.patch(
         f"/api/customers/{customer_id}",
         json={"full_name": "Blocked"},
         headers=auth_headers,

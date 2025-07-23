@@ -1,11 +1,12 @@
 import uuid
+import pytest
 from app.services.note_service import NoteService
 from app.services.customer_service import CustomerService
 from app.schemas.note import NoteCreatePayload
 from app.schemas.customer import CustomerCreate, Gender
 
 
-def create_customer(service: CustomerService) -> uuid.UUID:
+async def create_customer(service: CustomerService) -> uuid.UUID:
     data = CustomerCreate(
         user_id=uuid.uuid4(),
         business_id=uuid.uuid4(),
@@ -15,13 +16,14 @@ def create_customer(service: CustomerService) -> uuid.UUID:
         gender=Gender.MALE,
         avatar_url=None,
     )
-    customer = service.create_customer(data, "init")
+    customer = await service.create_customer(data, "init")
     return customer.id
 
 
-def test_note_creation_emits_event(db_session, monkeypatch):
+@pytest.mark.asyncio
+async def test_note_creation_emits_event(db_session, monkeypatch):
     customer_service = CustomerService(db_session)
-    customer_id = create_customer(customer_service)
+    customer_id = await create_customer(customer_service)
 
     note_service = NoteService(db_session)
 
@@ -33,7 +35,7 @@ def test_note_creation_emits_event(db_session, monkeypatch):
     monkeypatch.setattr("app.services.event_publisher.publish_event", dummy_publish)
 
     payload = NoteCreatePayload(content="hello", created_by=uuid.uuid4())
-    note = note_service.create_customer_note(customer_id, payload, "trace123")
+    note = await note_service.create_customer_note(customer_id, payload, "trace123")
 
     assert len(captured) == 1
     name, event_payload, trace_id = captured[0]
@@ -44,9 +46,10 @@ def test_note_creation_emits_event(db_session, monkeypatch):
     assert trace_id == "trace123"
 
 
-def test_logging_on_note_creation(db_session, monkeypatch):
+@pytest.mark.asyncio
+async def test_logging_on_note_creation(db_session, monkeypatch):
     customer_service = CustomerService(db_session)
-    customer_id = create_customer(customer_service)
+    customer_id = await create_customer(customer_service)
 
     note_service = NoteService(db_session)
 
@@ -58,7 +61,7 @@ def test_logging_on_note_creation(db_session, monkeypatch):
     monkeypatch.setattr("app.services.log_service.send_log", dummy_log)
 
     payload = NoteCreatePayload(content="hello", created_by=uuid.uuid4())
-    note = note_service.create_customer_note(customer_id, payload, "trace_log")
+    note = await note_service.create_customer_note(customer_id, payload, "trace_log")
 
     assert len(captured) == 1
     event, data_payload, trace_id = captured[0]

@@ -1,15 +1,16 @@
 import importlib
-from fastapi.testclient import TestClient
+import pytest
 
 
-def test_health_and_metrics_endpoints(db_session):
+@pytest.mark.asyncio
+async def test_health_and_metrics_endpoints(db_session, async_client):
     main_module = importlib.reload(__import__('main'))
-    client = TestClient(main_module.app)
+    client = async_client
 
-    health_resp = client.get('/health')
+    health_resp = await client.get('/health')
     assert health_resp.status_code == 200
     assert health_resp.json() == {'status': 'healthy'}
 
-    metrics_resp = client.get('/metrics')
+    metrics_resp = await client.get('/metrics')
     assert metrics_resp.status_code == 200
     assert '# HELP' in metrics_resp.text

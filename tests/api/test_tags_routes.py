@@ -1,11 +1,12 @@
 import importlib
 import uuid
-from fastapi.testclient import TestClient
+import pytest
 
 
-def test_create_and_get_tags(db_session, auth_headers, internal_headers):
+@pytest.mark.asyncio
+async def test_create_and_get_tags(db_session, auth_headers, internal_headers, async_client):
     main_module = importlib.reload(__import__('main'))
-    client = TestClient(main_module.app)
+    client = async_client
 
     customer_payload = {
         'user_id': str(uuid.uuid4()),
@@ -16,7 +17,7 @@ def test_create_and_get_tags(db_session, auth_headers, internal_headers):
         'gender': 'male',
         'avatar_url': None,
     }
-    resp = client.post('/api/customers/', json=customer_payload, headers=internal_headers)
+    resp = await client.post('/api/customers/', json=customer_payload, headers=internal_headers)
     assert resp.status_code == 201
     customer_id = resp.json()['id']
 
@@ -27,14 +28,14 @@ def test_create_and_get_tags(db_session, auth_headers, internal_headers):
         'priority': 5,
         'created_by': str(uuid.uuid4()),
     }
-    resp = client.post('/api/customers/tags/', json=tag_payload, headers=auth_headers)
+    resp = await client.post('/api/customers/tags/', json=tag_payload, headers=auth_headers)
     assert resp.status_code == 201
     tag_id = resp.json()['id']
     assert resp.json()['color'] == 'red'
     assert resp.json()['priority'] == 5
     assert resp.json()['created_by'] == tag_payload['created_by']
 
-    resp = client.get(f'/api/customers/tags/customer/{customer_id}', headers=auth_headers)
+    resp = await client.get(f'/api/customers/tags/customer/{customer_id}', headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
@@ -44,9 +45,10 @@ def test_create_and_get_tags(db_session, auth_headers, internal_headers):
     assert data[0]['created_by'] == tag_payload['created_by']
 
 
-def test_create_and_delete_tags_new_routes(db_session, auth_headers, internal_headers):
+@pytest.mark.asyncio
+async def test_create_and_delete_tags_new_routes(db_session, auth_headers, internal_headers, async_client):
     main_module = importlib.reload(__import__('main'))
-    client = TestClient(main_module.app)
+    client = async_client
 
     customer_payload = {
         'user_id': str(uuid.uuid4()),
@@ -57,11 +59,11 @@ def test_create_and_delete_tags_new_routes(db_session, auth_headers, internal_he
         'gender': 'female',
         'avatar_url': None,
     }
-    resp = client.post('/api/customers/', json=customer_payload, headers=internal_headers)
+    resp = await client.post('/api/customers/', json=customer_payload, headers=internal_headers)
     assert resp.status_code == 201
     customer_id = resp.json()['id']
 
-    resp = client.post(
+    resp = await client.post(
         f'/api/customers/{customer_id}/tags',
         json={'label': 'VIP'},
         headers=auth_headers,
@@ -70,7 +72,7 @@ def test_create_and_delete_tags_new_routes(db_session, auth_headers, internal_he
     assert resp.json()[0]['label'] == 'VIP'
     tag_id = resp.json()[0]['id']
 
-    resp = client.post(
+    resp = await client.post(
         f'/api/customers/{customer_id}/tags',
         json={'labels': ['Frequent', 'Loyal']},
         headers=auth_headers,
@@ -78,21 +80,22 @@ def test_create_and_delete_tags_new_routes(db_session, auth_headers, internal_he
     assert resp.status_code == 201
     assert len(resp.json()) == 2
 
-    resp = client.delete(
+    resp = await client.delete(
         f'/api/customers/{customer_id}/tags/{tag_id}',
         headers=auth_headers,
     )
     assert resp.status_code == 204
 
-    resp = client.get(f'/api/customers/tags/customer/{customer_id}', headers=auth_headers)
+    resp = await client.get(f'/api/customers/tags/customer/{customer_id}', headers=auth_headers)
     assert resp.status_code == 200
     labels = [t['label'] for t in resp.json()]
     assert 'VIP' not in labels
 
 
-def test_duplicate_tags_returns_400(db_session, auth_headers, internal_headers):
+@pytest.mark.asyncio
+async def test_duplicate_tags_returns_400(db_session, auth_headers, internal_headers, async_client):
     main_module = importlib.reload(__import__('main'))
-    client = TestClient(main_module.app)
+    client = async_client
 
     customer_payload = {
         'user_id': str(uuid.uuid4()),
@@ -103,18 +106,18 @@ def test_duplicate_tags_returns_400(db_session, auth_headers, internal_headers):
         'gender': 'male',
         'avatar_url': None,
     }
-    resp = client.post('/api/customers/', json=customer_payload, headers=internal_headers)
+    resp = await client.post('/api/customers/', json=customer_payload, headers=internal_headers)
     assert resp.status_code == 201
     customer_id = resp.json()['id']
 
-    resp = client.post(
+    resp = await client.post(
         f'/api/customers/{customer_id}/tags',
         json={'label': 'VIP'},
         headers=auth_headers,
     )
     assert resp.status_code == 201
 
-    resp = client.post(
+    resp = await client.post(
         f'/api/customers/{customer_id}/tags',
         json={'label': 'VIP'},
         headers=auth_headers,
