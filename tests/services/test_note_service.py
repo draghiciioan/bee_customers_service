@@ -30,9 +30,7 @@ def test_note_creation_emits_event(db_session, monkeypatch):
     async def dummy_publish(event_name: str, payload: dict, trace_id: str):
         captured.append((event_name, payload, trace_id))
 
-    monkeypatch.setattr(
-        "app.services.event_publisher.publish_event", dummy_publish
-    )
+    monkeypatch.setattr("app.services.event_publisher.publish_event", dummy_publish)
 
     payload = NoteCreatePayload(content="hello", created_by=uuid.uuid4())
     note = note_service.create_customer_note(customer_id, payload, "trace123")
@@ -45,3 +43,26 @@ def test_note_creation_emits_event(db_session, monkeypatch):
     assert event_payload["trace_id"] == "trace123"
     assert trace_id == "trace123"
 
+
+def test_logging_on_note_creation(db_session, monkeypatch):
+    customer_service = CustomerService(db_session)
+    customer_id = create_customer(customer_service)
+
+    note_service = NoteService(db_session)
+
+    captured = []
+
+    async def dummy_log(event: str, data: dict, trace_id: str):
+        captured.append((event, data, trace_id))
+
+    monkeypatch.setattr("app.services.log_service.send_log", dummy_log)
+
+    payload = NoteCreatePayload(content="hello", created_by=uuid.uuid4())
+    note = note_service.create_customer_note(customer_id, payload, "trace_log")
+
+    assert len(captured) == 1
+    event, data_payload, trace_id = captured[0]
+    assert event == "v1.customer.note_added"
+    assert data_payload["customer_id"] == str(customer_id)
+    assert data_payload["note_id"] == str(note.id)
+    assert trace_id == "trace_log"

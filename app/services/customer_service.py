@@ -6,6 +6,7 @@ import logging
 
 from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate, CustomerUpdate
+from app.services.log_service import send_log_sync
 
 
 class CustomerService:
@@ -24,7 +25,7 @@ class CustomerService:
             email=customer.email,
             phone=customer.phone,
             gender=customer.gender.value if customer.gender else None,
-            avatar_url=customer.avatar_url
+            avatar_url=customer.avatar_url,
         )
         self.db.add(db_customer)
         self.db.commit()
@@ -37,6 +38,14 @@ class CustomerService:
                 "business_id": str(db_customer.business_id),
                 "trace_id": trace_id,
             },
+        )
+        send_log_sync(
+            "v1.customer.created",
+            {
+                "customer_id": str(db_customer.id),
+                "business_id": str(db_customer.business_id),
+            },
+            trace_id,
         )
 
         from app.services.event_publisher import publish_event_sync
@@ -90,20 +99,20 @@ class CustomerService:
         db_customer = self.get_customer(customer_id)
         if not db_customer:
             return None
-            
+
         # Update only the fields that are provided
         update_data = customer_data.model_dump(exclude_unset=True)
-        
+
         # Handle gender enum conversion
         if "gender" in update_data and update_data["gender"] is not None:
             update_data["gender"] = update_data["gender"].value
-            
+
         fields_changed = []
         for key, value in update_data.items():
             if getattr(db_customer, key) != value:
                 setattr(db_customer, key, value)
                 fields_changed.append(key)
-            
+
         self.db.commit()
         self.db.refresh(db_customer)
 
@@ -126,6 +135,11 @@ class CustomerService:
                     "trace_id": trace_id,
                 },
             )
+            send_log_sync(
+                "v1.customer.updated",
+                {"customer_id": str(db_customer.id), "fields_changed": fields_changed},
+                trace_id,
+            )
 
         return db_customer
 
@@ -136,7 +150,7 @@ class CustomerService:
         db_customer = self.get_customer(customer_id)
         if not db_customer:
             return False
-            
+
         self.db.delete(db_customer)
         self.db.commit()
         return True

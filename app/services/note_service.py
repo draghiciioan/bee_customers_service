@@ -5,6 +5,7 @@ import logging
 
 from app.models.customer_note import CustomerNote
 from app.schemas.note import NoteCreate, NoteCreatePayload
+from app.services.log_service import send_log_sync
 
 
 class NoteService:
@@ -19,7 +20,7 @@ class NoteService:
         db_note = CustomerNote(
             customer_id=note.customer_id,
             content=note.content,
-            created_by=note.created_by
+            created_by=note.created_by,
         )
         self.db.add(db_note)
         self.db.commit()
@@ -32,6 +33,11 @@ class NoteService:
                 "note_id": str(db_note.id),
                 "trace_id": trace_id,
             },
+        )
+        send_log_sync(
+            "v1.customer.note_added",
+            {"customer_id": str(db_note.customer_id), "note_id": str(db_note.id)},
+            trace_id,
         )
 
         from app.services.event_publisher import publish_event_sync
@@ -66,7 +72,11 @@ class NoteService:
         """
         Get all notes for a specific customer.
         """
-        return self.db.query(CustomerNote).filter(CustomerNote.customer_id == customer_id).all()
+        return (
+            self.db.query(CustomerNote)
+            .filter(CustomerNote.customer_id == customer_id)
+            .all()
+        )
 
     def delete_note(self, note_id: UUID) -> bool:
         """
@@ -75,7 +85,7 @@ class NoteService:
         db_note = self.get_note(note_id)
         if not db_note:
             return False
-            
+
         self.db.delete(db_note)
         self.db.commit()
         return True
