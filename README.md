@@ -192,6 +192,7 @@ Response
 - `RABBITMQ_EXCHANGE` - Exchange used for publishing events (`bee.customers.events`).
 - `LOG_SERVICE_URL` - Optional endpoint for forwarding structured logs.
 - `CUSTOMER_PATCH_RATE` - Rate limit for `PATCH /customers/{id}` (default `5/minute`).
+- `REDIS_URL` - Optional Redis connection used to store failed events (default `redis://localhost:6379/0`).
 
 File uploads currently use the local `uploads/` directory. No dedicated environment variables are defined for this feature.
 
@@ -253,6 +254,15 @@ via the required `RABBITMQ_URL` environment variable. All events are sent to the
 }
 ```
 
+### Resending Failed Events
+
+If RabbitMQ is unavailable, events are queued in Redis under `failed_events`.
+Resend them with:
+
+```bash
+poetry run python scripts/resend_failed_events.py
+```
+
 ## Monitoring and Logging
 
 - Prometheus metrics exposed at `/metrics` via `prometheus-fastapi-instrumentator`
@@ -291,6 +301,7 @@ Example:
 - **2025-07-24**: Added rate limiting for `PATCH /customers/{id}` using slowapi and `CUSTOMER_PATCH_RATE` setting.
 - **2025-07-25**: Documented role requirements, phone number format, tag uniqueness, and log forwarding details.
 - **2025-07-26**: Added JSON log formatter with `timestamp`, `level`, `service_name`, and `trace_id` fields.
+- **2025-07-27**: Added optional Redis queueing for failed events and management script `scripts/resend_failed_events.py`.
 
 ## License
 
