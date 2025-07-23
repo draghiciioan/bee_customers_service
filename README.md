@@ -1,350 +1,355 @@
-# BeeConect - bee_customers_service
+# Serviciul de Clienți BeeConect
 
-## Overview
+## Prezentare generală
 
-**bee_customers_service** is a microservice component of the BeeConect platform that manages extended customer profiles. This service centralizes customer interaction history (orders, appointments), enables personalized customer experiences, and helps businesses with customer retention, loyalty, and segmentation.
+Serviciul de Clienți BeeConect este un microserviciu responsabil pentru gestionarea datelor clienților în cadrul platformei BeeConect. Acesta oferă un API cuprinzător pentru crearea, recuperarea, actualizarea și ștergerea profilurilor clienților, precum și pentru gestionarea datelor legate de clienți, cum ar fi etichetele și notițele. Serviciul include, de asemenea, funcționalități de conformitate GDPR pentru exportul și ștergerea datelor.
 
-## Key Features
+Acest microserviciu este conceput pentru a face parte dintr-o arhitectură mai largă de microservicii, integrându-se cu alte servicii precum autentificare, comenzi și programări.
 
-- **Customer Profile Management**: Centralized personal data including name, email, phone, gender, preferences
-- **Order History**: Integration with bee_orders_service
-- **Appointment History**: Integration with bee_scheduling_service
-- **Notes and Tags**: Visible only to administrators
-- **Customer Statistics**: Number of orders, total value, last order
-- **GDPR Compliance**: Support for export and deletion requests
+## Caracteristici principale
 
-## Architecture
+- **Gestionarea clienților**: Crearea, recuperarea, actualizarea și ștergerea profilurilor clienților
+- **Etichetarea clienților**: Adăugarea și gestionarea etichetelor pentru categorizarea clienților (de ex., "VIP", "Blacklist")
+- **Notițe despre clienți**: Adăugarea și gestionarea notițelor interne despre clienți
+- **Statistici clienți**: Urmărirea și recuperarea statisticilor clienților (comenzi, programări, valoare pe durata vieții)
+- **Conformitate GDPR**: Exportul și ștergerea datelor clienților pentru conformitatea cu GDPR
+- **Publicarea evenimentelor**: Publicarea evenimentelor către RabbitMQ pentru comunicarea între servicii
+- **Limitarea ratei**: Protejarea endpoint-urilor API împotriva abuzurilor prin limitarea ratei
+- **Autentificare și autorizare**: Securizarea endpoint-urilor cu control de acces bazat pe roluri
 
-This microservice follows the BeeConect platform's microservice architecture:
-- **Backend**: FastAPI + SQLAlchemy + PostgreSQL
-- **Communication**: RabbitMQ for asynchronous event-driven communication
-- **Authentication**: JWT-based via bee_auth_service
-- **Containerization**: Docker for isolation and scalability
+## Arhitectură
 
-## Technical Stack
+Serviciul de Clienți BeeConect este construit folosind următoarele tehnologii:
 
-- **Language**: Python 3.12
-- **Framework**: FastAPI
-- **ORM**: SQLAlchemy
-- **Database**: PostgreSQL (dedicated database)
-- **Async Driver**: `asyncpg` with SQLAlchemy's async engine
-- **Message Broker**: RabbitMQ
-- **Dependency Management**: Poetry
-- **Testing**: pytest, pytest-asyncio
-- **Containerization**: Docker
-- **CI/CD**: GitHub Actions
-- **Monitoring**: Prometheus, Grafana
-- **Rate Limiting**: slowapi
-## Continuous Integration (GitHub Actions)
-The pipeline defined in `.github/workflows/ci.yml` installs dependencies, runs `ruff` for linting, and executes the test suite.
-Check the **Actions** tab or your pull request checks to see the results.
+- **FastAPI**: Framework web de înaltă performanță pentru construirea API-urilor
+- **SQLAlchemy**: Toolkit SQL și ORM pentru interacțiuni cu baza de date
+- **PostgreSQL**: Bază de date primară pentru stocarea datelor clienților
+- **RabbitMQ**: Broker de mesaje pentru publicarea evenimentelor
+- **Redis**: Utilizat pentru stocarea evenimentelor eșuate și limitarea ratei
+- **Pydantic**: Validarea datelor și gestionarea setărilor
+- **Alembic**: Instrument de migrare a bazei de date
 
+Serviciul urmează o arhitectură stratificată:
 
-## Setup and Installation
+1. **Stratul API**: Gestionează cererile și răspunsurile HTTP (app/api)
+2. **Stratul de servicii**: Conține logica de afaceri (app/services)
+3. **Stratul de date**: Gestionează interacțiunile cu baza de date (app/models, app/db)
+4. **Stratul de scheme**: Validează și transformă datele (app/schemas)
 
-### Prerequisites
+## Endpoint-uri API
 
-- Python 3.12+
-- Poetry
-- Docker and Docker Compose
+### Endpoint-uri pentru clienți
+
+- `POST /api/customers/`: Creează un nou profil de client
+- `GET /api/customers/{customer_id}`: Obține un client după ID
+- `GET /api/customers/`: Obține o listă de clienți cu opțiuni de filtrare
+- `PATCH /api/customers/{customer_id}`: Actualizează informațiile unui client
+- `POST /api/customers/{customer_id}/avatar`: Încarcă și setează imaginea avatar a unui client
+- `DELETE /api/customers/{customer_id}`: Șterge un client
+- `GET /api/customers/{customer_id}/stats`: Obține statistici pentru un client specific
+
+### Endpoint-uri pentru etichete
+
+- `POST /api/customers/tags/`: Creează o nouă etichetă
+- `GET /api/customers/tags/customer/{customer_id}`: Obține toate etichetele pentru un client specific
+- `DELETE /api/customers/tags/{tag_id}`: Șterge o etichetă
+- `POST /api/customers/{customer_id}/tags`: Creează una sau mai multe etichete pentru un client
+- `DELETE /api/customers/{customer_id}/tags/{tag_id}`: Șterge o etichetă de la un client specific
+
+### Endpoint-uri pentru notițe
+
+- `POST /api/customers/{customer_id}/notes`: Creează o notiță pentru un client specific
+- `GET /api/customers/{customer_id}/notes`: Recuperează toate notițele pentru un client
+- `DELETE /api/customers/{customer_id}/notes/{note_id}`: Șterge o notiță specifică pentru un client
+
+### Endpoint-uri GDPR
+
+- `POST /api/gdpr/export`: Exportă toate datele pentru un client specific
+- `POST /api/gdpr/delete`: Șterge toate datele pentru un client specific
+
+### Endpoint-uri pentru sănătate și metrici
+
+- `GET /`: Mesaj de bun venit și informații despre serviciu
+- `GET /health`: Endpoint pentru verificarea sănătății
+- `GET /metrics`: Endpoint pentru metrici Prometheus
+
+## Modele de date
+
+### Customer (Client)
+
+Entitatea principală care reprezintă un profil de client:
+
+- `id`: Cheie primară UUID
+- `user_id`: Referință UUID către un utilizator global
+- `business_id`: Referință UUID către o afacere
+- `full_name`: Numele complet al clientului
+- `email`: Adresa de email a clientului
+- `phone`: Numărul de telefon al clientului (opțional)
+- `gender`: Genul clientului (masculin, feminin, altul)
+- `avatar_url`: URL către imaginea avatar a clientului (opțional)
+- `total_orders`: Numărul de comenzi ale clientului
+- `total_appointments`: Numărul de programări ale clientului
+- `last_order_date`: Data ultimei comenzi a clientului
+- `last_appointment_date`: Data ultimei programări a clientului
+- `lifetime_value`: Valoarea monetară totală a comenzilor clientului
+- `created_at`: Timestamp-ul când a fost creat clientul
+- `updated_at`: Timestamp-ul când a fost actualizat ultima dată clientul
+
+### CustomerTag (Etichetă Client)
+
+Reprezintă o etichetă asociată unui client:
+
+- `id`: Cheie primară UUID
+- `customer_id`: Cheie străină UUID către Customer
+- `label`: Eticheta (de ex., "VIP", "Blacklisted")
+- `color`: Cod de culoare pentru afișare UI (opțional)
+- `priority`: Întreg pentru ordinea de sortare/afișare
+- `created_by`: UUID-ul utilizatorului care a creat eticheta
+
+### CustomerNote (Notiță Client)
+
+Reprezintă o notiță asociată unui client:
+
+- `id`: Cheie primară UUID
+- `customer_id`: Cheie străină UUID către Customer
+- `content`: Conținutul notiței (maxim 500 caractere)
+- `created_by`: UUID-ul administratorului care a creat notița
+- `created_at`: Timestamp-ul când a fost creată notița
+
+### CustomerHistory (Istoric Client)
+
+Urmărește date istorice suplimentare despre un client:
+
+- `id`: Cheie primară UUID
+- `customer_id`: Cheie străină UUID către Customer
+- `first_order_date`: Data primei comenzi a clientului
+- `first_appointment_date`: Data primei programări a clientului
+- `returned_orders`: Numărul de comenzi returnate de client
+- `cancelled_appointments`: Numărul de programări anulate de client
+
+## Configurare
+
+Serviciul poate fi configurat folosind variabile de mediu sau un fișier `.env`. Iată principalele opțiuni de configurare:
+
+### Setări bază de date
+
+- `DATABASE_URL`: String de conexiune PostgreSQL (implicit: "postgresql://postgres:postgres@localhost:5432/bee_customers")
+
+### Setări JWT
+
+- `SECRET_KEY`: Cheie secretă pentru generarea token-urilor JWT (implicit: "supersecretkey")
+- `ALGORITHM`: Algoritmul utilizat pentru generarea token-urilor JWT (implicit: "HS256")
+- `ACCESS_TOKEN_EXPIRE_MINUTES`: Timpul de expirare al token-ului JWT în minute (implicit: 30)
+
+### Setări CORS
+
+- `CORS_ORIGINS`: Listă separată prin virgulă de origini permise pentru CORS (implicit: "*")
+
+### Servicii externe
+
+- `AUTH_SERVICE_URL`: URL-ul serviciului de autentificare (implicit: "http://localhost:8001")
+- `ORDERS_SERVICE_URL`: URL-ul serviciului de comenzi (implicit: "http://localhost:8002")
+- `SCHEDULING_SERVICE_URL`: URL-ul serviciului de programări (implicit: "http://localhost:8003")
+- `LOG_SERVICE_URL`: URL-ul serviciului de logging (opțional)
+
+### Limitarea ratei
+
+- `CUSTOMER_PATCH_RATE`: Limita de rată pentru endpoint-ul de actualizare client (implicit: "5/minute")
+
+### Setări RabbitMQ
+
+- `RABBITMQ_URL`: String de conexiune RabbitMQ (implicit: "amqp://guest:guest@localhost:5672/")
+- `RABBITMQ_EXCHANGE`: Numele exchange-ului RabbitMQ (implicit: "bee.customers.events")
+
+### Setări Redis
+
+- `REDIS_URL`: String de conexiune Redis (implicit: "redis://localhost:6379/0")
+
+## Instalare și configurare
+
+### Cerințe preliminare
+
+- Python 3.12 sau mai nou
 - PostgreSQL
 - RabbitMQ
+- Redis
 
-### Local Development Setup
+### Configurare pentru dezvoltare locală
 
-1. Clone the repository:
-   ```
-   git clone <repository-url>
-   cd bee_customers_service
-   ```
-
-2. Install dependencies:
-   ```
-   # Install dependencies including the `dev` group so that
-   # `pytest-asyncio` and other testing tools are available
-   poetry install --with dev
-   ```
-
-3. Set up environment variables:
-   ```
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-The `.env.example` file lists all supported settings.
-
-4. Initialize the database schema using Alembic migrations:
+1. Clonează repository-ul:
    ```bash
-   poetry run alembic upgrade head
+   git clone https://github.com/your-organization/bee-customers-service.git
+   cd bee-customers-service
    ```
-5. Run the service (listens on `http://localhost:8007`):
+
+2. Creează un mediu virtual și instalează dependențele:
    ```bash
-   poetry run uvicorn main:app --reload --port 8007
+   python -m venv .venv
+   .venv\Scripts\activate  # Pe Windows
+   pip install poetry
+   poetry install
    ```
-6. Visit `http://localhost:8007/docs` to verify the API is reachable.
 
-### Running Tests Locally
+3. Creează un fișier `.env` cu configurația ta:
+   ```
+   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bee_customers
+   SECRET_KEY=your-secret-key
+   RABBITMQ_URL=amqp://guest:guest@localhost:5672/
+   REDIS_URL=redis://localhost:6379/0
+   ```
 
-Install dev dependencies (which include `pytest-asyncio`) and execute the full test suite with coverage:
+4. Rulează migrările bazei de date:
+   ```bash
+   alembic upgrade head
+   ```
+
+5. Pornește serviciul:
+   ```bash
+   poetry run python main.py
+   ```
+
+   API-ul va fi disponibil la http://localhost:8000.
+
+   > **Notă:** Există o diferență de port între dezvoltarea locală (8000) și implementarea Docker (8007). Exemplele curl din această documentație folosesc portul 8007 pentru a se potrivi cu configurația Docker, dar dacă rulezi serviciul local, va trebui să folosești portul 8000 în schimb.
+
+### Configurare Docker
+
+1. Construiește imaginea Docker:
+   ```bash
+   docker build -t bee-customers-service .
+   ```
+
+2. Rulează containerul:
+   ```bash
+   docker run -p 8007:8007 \
+     -e DATABASE_URL=postgresql://postgres:postgres@postgres:5432/bee_customers \
+     -e RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/ \
+     -e REDIS_URL=redis://redis:6379/0 \
+     bee-customers-service
+   ```
+
+Dockerfile-ul folosește următoarea configurație:
+- Imagine de bază: Python 3.12 slim
+- Instalează Poetry și dependențele proiectului (excluzând dependențele de dezvoltare)
+- Rulează aplicația folosind Uvicorn pe portul 8007
+- Comandă: `poetry run uvicorn main:app --host=0.0.0.0 --port=8007`
+
+## Exemple de utilizare
+
+### Crearea unui client
 
 ```bash
-poetry install --with dev
-poetry run pytest --cov=bee_customers_service -vv
+curl -X POST "http://localhost:8007/api/customers/" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "full_name": "John Doe",
+    "email": "john.doe@example.com",
+    "phone": "0712345678",
+    "gender": "male",
+    "user_id": "123e4567-e89b-12d3-a456-426614174000",
+    "business_id": "123e4567-e89b-12d3-a456-426614174001"
+  }'
 ```
 
-Tests rely on the settings in your `.env` file. The CI workflow defined in `.github/workflows/ci.yml` uses the same commands.
+### Obținerea unui client
 
-### Building and Running the Docker Image
-
-Using Docker is the easiest way to try the service without installing Python and dependencies locally. The provided `docker-compose.yml` starts the API along with PostgreSQL and RabbitMQ.
-
-1. **Build the image:**
-   ```
-   docker build -t bee_customers_service .
-   ```
-
-2. **Run the container:**
-   ```
-   docker run --env-file .env -p 8007:8007 bee_customers_service
-   ```
-
-3. **Alternatively, use Docker Compose (apply migrations first):**
-   ```bash
-   docker-compose run --rm bee_customers_service alembic upgrade head
-   docker-compose up -d
-   ```
-
-## API Documentation
-
-Once the service is running, API documentation is available at:
-- Swagger UI: http://localhost:8007/docs
-- ReDoc: http://localhost:8007/redoc
-
-### Core Endpoints
-
-| Method & Path | Description | Auth Requirement |
-|---------------|-------------|-----------------|
-| `PATCH /customers/{id}` | Update customer fields such as phone or avatar URL. | Customer themselves or admin |
-| `POST /customers/{id}/avatar` | Upload a JPG/PNG avatar (max 1MB). Stored under `uploads/`. | Customer themselves or admin |
-| `GET /customers?business_id=...&query=...` | List customers filtered by business and search query. | Admin roles |
-| `POST /customers/{id}/tags` | Add one or more tags to a customer profile. | Admin roles |
-| `DELETE /customers/{id}/tags/{tag_id}` | Remove a tag from a profile. | Admin roles |
-| `POST /customers/{id}/notes` | Create a private note for a customer. | Admin roles |
-| `GET /customers/{id}/notes` | List all notes for a customer. | Admin roles |
-| `DELETE /customers/{id}/notes/{note_id}` | Delete a note. | Admin roles |
-| `GET /customers/{id}/stats` | Retrieve order and appointment statistics. | Customer themselves or admin |
-
-#### Role Requirements
-
-| Action | Who is allowed? |
-|--------|----------------|
-| `GET /customers?business_id=...` | Only `admin_business` or `admin_manager` |
-| `GET /customers/{id}` | The customer themselves or administrators |
-| `PATCH /customers/{id}` | The customer themselves or administrators |
-| `POST /customers/{id}/tags` & `POST /customers/{id}/notes` | Administrators only |
-| `POST /customers/{id}/avatar` | The customer themselves or business administrators |
-| `GET /customers/{id}/stats` | The customer themselves or administrators |
-
-Request/response samples are available via Swagger UI. Below are a few examples:
-
-**PATCH /customers/{id}**
-
-Request
-```json
-{
-  "phone": "+40798765432",
-  "avatar_url": "https://cdn.example.com/avatars/ana.jpg"
-}
+```bash
+curl -X GET "http://localhost:8007/api/customers/123e4567-e89b-12d3-a456-426614174002" \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-Response
-```json
-{
-  "id": "uuid",
-  "full_name": "Ana Popescu",
-  "phone": "+40798765432",
-  "avatar_url": "https://cdn.example.com/avatars/ana.jpg"
-}
+### Adăugarea unei etichete la un client
+
+```bash
+curl -X POST "http://localhost:8007/api/customers/123e4567-e89b-12d3-a456-426614174002/tags" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "label": "VIP",
+    "color": "#FFD700"
+  }'
 ```
 
-**POST /customers/{id}/avatar**
+### Adăugarea unei notițe la un client
 
-Request: multipart/form-data with field `file` (JPEG/PNG)
-
-Response
-```json
-{
-  "avatar_url": "/uploads/{generated_filename}.jpg"
-}
+```bash
+curl -X POST "http://localhost:8007/api/customers/123e4567-e89b-12d3-a456-426614174002/notes" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "content": "Clientul a solicitat un apel de urmărire săptămâna viitoare."
+  }'
 ```
 
-**GET /customers?business_id=uuid&query=ana**
+### Exportarea datelor clientului (GDPR)
 
-Response
-```json
-[
-  {
-    "id": "uuid",
-    "full_name": "Ana Popescu",
-    "email": "ana@email.com"
-  }
-]
+```bash
+curl -X POST "http://localhost:8007/api/gdpr/export" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "user_id": "123e4567-e89b-12d3-a456-426614174000",
+    "business_id": "123e4567-e89b-12d3-a456-426614174001"
+  }'
 ```
 
-**/customers/{id}/stats**
+## Depanare
 
-Response
-```json
-{
-  "total_orders": 12,
-  "total_appointments": 8,
-  "lifetime_value": 2750.0,
-  "last_order_date": "2025-07-15"
-}
+### Probleme comune
+
+1. **Erori de conexiune la baza de date**:
+   - Asigură-te că PostgreSQL rulează și este accesibil
+   - Verifică dacă variabila de mediu `DATABASE_URL` este corectă
+   - Verifică permisiunile utilizatorului bazei de date
+
+2. **Erori de conexiune RabbitMQ**:
+   - Asigură-te că RabbitMQ rulează și este accesibil
+   - Verifică dacă variabila de mediu `RABBITMQ_URL` este corectă
+   - Verifică permisiunile utilizatorului RabbitMQ
+
+3. **Erori de conexiune Redis**:
+   - Asigură-te că Redis rulează și este accesibil
+   - Verifică dacă variabila de mediu `REDIS_URL` este corectă
+
+4. **Erori de autentificare**:
+   - Asigură-te că variabila de mediu `SECRET_KEY` este setată corect
+   - Verifică dacă token-ul JWT este valid și nu a expirat
+   - Verifică dacă utilizatorul are permisiunile necesare
+
+### Loguri
+
+Serviciul folosește logging structurat. Pentru a vizualiza logurile:
+
+```bash
+# În modul de dezvoltare
+poetry run python main.py
+
+# În modul de producție
+tail -f /path/to/logs/bee-customers-service.log
 ```
 
-#### Validation Rules
+## Publicarea evenimentelor
 
-- Phone numbers must use the international format (`+407xxxxxxxx`).
-- The same tag label cannot be added twice to the same customer profile.
+Serviciul publică evenimente către RabbitMQ când anumite acțiuni au loc:
 
-#### Rate Limiting & Log Forwarding
+- `customer.created`: Când un nou client este creat
+- `customer.updated`: Când un client este actualizat
+- `customer.deleted`: Când un client este șters
+- `customer.tag.added`: Când o etichetă este adăugată unui client
+- `customer.tag.removed`: Când o etichetă este eliminată de la un client
+- `customer.note.added`: Când o notiță este adăugată unui client
 
-- `PATCH /customers/{id}` is rate limited using `CUSTOMER_PATCH_RATE` (default `5/minute`).
-- When `LOG_SERVICE_URL` is set, all structured logs are sent to that endpoint.
+Aceste evenimente pot fi consumate de alte servicii pentru a reacționa la schimbările din datele clienților.
 
-### Environment Variables
+## Retrimiterea evenimentelor eșuate
 
-The service reads configuration from a `.env` file. Copy `\.env.example` and adjust values for your environment:
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:postgres@localhost:5432/bee_customers` |
-| `RABBITMQ_URL` | RabbitMQ broker URL | `amqp://guest:guest@localhost:5672/` |
-| `RABBITMQ_EXCHANGE` | Exchange used for publishing events | `bee.customers.events` |
-| `LOG_SERVICE_URL` | Endpoint for forwarding structured logs | `http://localhost:8100/logs` |
-| `CUSTOMER_PATCH_RATE` | Rate limit for `PATCH /customers/{id}` | `5/minute` |
-| `CORS_ORIGINS` | Comma separated list of allowed CORS origins | `*` |
-| `REDIS_URL` | Redis connection for failed events | `redis://localhost:6379/0` |
-
-File uploads use the local `uploads/` directory and do not require extra variables.
-
-## Integration with Other Services
-
-This service integrates with:
-- **bee_auth_service**: For authentication and basic user information
-- **bee_orders_service**: For order history
-- **bee_scheduling_service**: For appointment history
-- **bee_notifications_service**: For personalized messaging
-
-## RabbitMQ Events
-
-The service publishes customer-related events to RabbitMQ. Set the broker URL
-via the required `RABBITMQ_URL` environment variable. All events are sent to the
-`bee.customers.events` exchange (type `topic`) using routing keys matching
-`v1.customer.*`. Each message includes the HTTP `X-Trace-Id` value in the
-`trace_id` header for end-to-end observability.
-
-### Sample Payloads
-
-`v1.customer.created`
-```json
-{
-  "id": "uuid",
-  "user_id": "uuid",
-  "business_id": "uuid",
-  "full_name": "Ana Popescu",
-  "email": "ana@email.com",
-  "trace_id": "uuid"
-}
-```
-
-`v1.customer.updated`
-```json
-{
-  "id": "uuid",
-  "fields_changed": ["phone", "avatar_url"],
-  "trace_id": "uuid"
-}
-```
-
-`v1.customer.tagged`
-```json
-{
-  "customer_id": "uuid",
-  "tag_id": "uuid",
-  "label": "VIP",
-  "trace_id": "uuid"
-}
-```
-
-`v1.customer.note_added`
-```json
-{
-  "customer_id": "uuid",
-  "note_id": "uuid",
-  "trace_id": "uuid"
-}
-```
-
-### Resending Failed Events
-
-If RabbitMQ is unavailable, events are queued in Redis under `failed_events`.
-Resend them with:
+Dacă publicarea evenimentelor către RabbitMQ eșuează, evenimentele sunt stocate în Redis. Pentru a retrimite aceste evenimente:
 
 ```bash
 poetry run python scripts/resend_failed_events.py
 ```
 
-## Monitoring and Logging
+## Licență
 
-- Prometheus metrics are available at `/metrics` using `prometheus-fastapi-instrumentator` for scraping.
-- Logs are emitted in structured JSON format compatible with Loki/ELK.
-- Health check endpoint available at `/healthcheck`.
-
-### Log Format
-
-Each log entry is emitted as a single JSON object with the following fields:
-
-- `timestamp` – ISO 8601 time of the event
-- `level` – log level name in lowercase
-- `service_name` – identifies this service
-- `trace_id` – correlation identifier from the request
-- `message` – log text
-
-Example:
-
-```json
-{
-  "timestamp": "2025-07-25T10:00:00Z",
-  "level": "info",
-  "service_name": "BeeConect Customer Service",
-  "trace_id": "uuid",
-  "message": "Customer created",
-  "customer_id": "uuid"
-}
-```
-
-## Changelog
-
-- **2025-07-22**: Added explicit indexes for `Customer` model (`business_id`, `user_id`, `full_name`, `phone`). Existing deployments require table recreation to apply these indexes.
-- **2025-07-22**: Introduced `RABBITMQ_URL` and `RABBITMQ_EXCHANGE` settings.
-- **2025-07-23**: Customer, tag and note actions now publish events with trace IDs.
-- **2025-07-23**: Added `LOG_SERVICE_URL` for forwarding logs to an external service.
-- **2025-07-24**: Added rate limiting for `PATCH /customers/{id}` using slowapi and `CUSTOMER_PATCH_RATE` setting.
-- **2025-07-25**: Documented role requirements, phone number format, tag uniqueness, and log forwarding details.
-- **2025-07-26**: Added JSON log formatter with `timestamp`, `level`, `service_name`, and `trace_id` fields.
-- **2025-07-27**: Added optional Redis queueing for failed events and management script `scripts/resend_failed_events.py`.
-- **2025-07-23**: Switched to asynchronous SQLAlchemy with `asyncpg`; all routes and services are now async.
-- **2025-07-28**: Database tables are no longer created automatically. Run migrations or a setup script before starting the service.
-
-## License
-
-[License information]
-
-## Contact
-
-[Contact information]
-
----
-
-Last updated: July 23, 2025
+[Specificați licența sub care este lansat serviciul]
