@@ -39,7 +39,8 @@ def db_session(tmp_path):
     try:
         yield session
     finally:
-        session.close()
+        # Ensure the async session is properly closed to avoid warnings
+        asyncio.run(session.close())
 
 
 @pytest.fixture()
