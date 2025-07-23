@@ -71,7 +71,17 @@ This microservice follows the BeeConect platform's microservice architecture:
 
 ### Docker Setup
 
-1. Build and run with Docker Compose:
+1. **Build the image:**
+   ```
+   docker build -t bee_customers_service .
+   ```
+
+2. **Run the container:**
+   ```
+   docker run --env-file .env -p 8007:8007 bee_customers_service
+   ```
+
+3. **Alternatively, use Docker Compose:**
    ```
    docker-compose up -d
    ```
