@@ -74,23 +74,26 @@ The `.env.example` file lists all supported settings.
    ```bash
    poetry run alembic upgrade head
    ```
-5. Run the service:
+5. Run the service (listens on `http://localhost:8007`):
+   ```bash
+   poetry run uvicorn main:app --reload --port 8007
    ```
-   poetry run uvicorn main:app --reload
-   ```
+6. Visit `http://localhost:8007/docs` to verify the API is reachable.
 
 ### Running Tests Locally
 
-Install dev dependencies and execute the test suite:
+Install dev dependencies and execute the full test suite with coverage:
 
 ```bash
 poetry install --with dev
-poetry run pytest
+poetry run pytest --cov=bee_customers_service -vv
 ```
 
-The CI workflow defined in `.github/workflows/ci.yml` uses the same commands.
+Tests rely on the settings in your `.env` file. The CI workflow defined in `.github/workflows/ci.yml` uses the same commands.
 
 ### Building and Running the Docker Image
+
+Using Docker is the easiest way to try the service without installing Python and dependencies locally. The provided `docker-compose.yml` starts the API along with PostgreSQL and RabbitMQ.
 
 1. **Build the image:**
    ```
@@ -209,15 +212,19 @@ Response
 
 ### Environment Variables
 
-- `DATABASE_URL` - PostgreSQL connection string.
-- `RABBITMQ_URL` - RabbitMQ connection URL.
-- `RABBITMQ_EXCHANGE` - Exchange used for publishing events (`bee.customers.events`).
-- `LOG_SERVICE_URL` - Optional endpoint for forwarding structured logs.
-- `CUSTOMER_PATCH_RATE` - Rate limit for `PATCH /customers/{id}` (default `5/minute`).
-- `CORS_ORIGINS` - Comma-separated list of allowed origins for CORS requests (default `*`).
-- `REDIS_URL` - Optional Redis connection used to store failed events (default `redis://localhost:6379/0`).
+The service reads configuration from a `.env` file. Copy `\.env.example` and adjust values for your environment:
 
-File uploads currently use the local `uploads/` directory. No dedicated environment variables are defined for this feature.
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:postgres@localhost:5432/bee_customers` |
+| `RABBITMQ_URL` | RabbitMQ broker URL | `amqp://guest:guest@localhost:5672/` |
+| `RABBITMQ_EXCHANGE` | Exchange used for publishing events | `bee.customers.events` |
+| `LOG_SERVICE_URL` | Endpoint for forwarding structured logs | `http://localhost:8100/logs` |
+| `CUSTOMER_PATCH_RATE` | Rate limit for `PATCH /customers/{id}` | `5/minute` |
+| `CORS_ORIGINS` | Comma separated list of allowed CORS origins | `*` |
+| `REDIS_URL` | Redis connection for failed events | `redis://localhost:6379/0` |
+
+File uploads use the local `uploads/` directory and do not require extra variables.
 
 ## Integration with Other Services
 
