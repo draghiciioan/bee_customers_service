@@ -60,6 +60,8 @@ Check the **Actions** tab or your pull request checks to see the results.
 
 2. Install dependencies:
    ```
+   # Install dependencies including the `dev` group so that
+   # `pytest-asyncio` and other testing tools are available
    poetry install --with dev
    ```
 
@@ -82,7 +84,7 @@ The `.env.example` file lists all supported settings.
 
 ### Running Tests Locally
 
-Install dev dependencies and execute the full test suite with coverage:
+Install dev dependencies (which include `pytest-asyncio`) and execute the full test suite with coverage:
 
 ```bash
 poetry install --with dev
