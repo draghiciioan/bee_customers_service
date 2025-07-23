@@ -34,6 +34,10 @@ This microservice follows the BeeConect platform's microservice architecture:
 - **CI/CD**: GitHub Actions
 - **Monitoring**: Prometheus, Grafana
 - **Rate Limiting**: slowapi
+## Continuous Integration (GitHub Actions)
+The pipeline defined in `.github/workflows/ci.yml` installs dependencies, runs `ruff` for linting, and executes the test suite.
+Check the **Actions** tab or your pull request checks to see the results.
+
 
 ## Setup and Installation
 
@@ -63,13 +67,14 @@ This microservice follows the BeeConect platform's microservice architecture:
    cp .env.example .env
    # Edit .env with your configuration
    ```
+The `.env.example` file lists all supported settings.
 
 4. Run the service:
    ```
    poetry run uvicorn main:app --reload
    ```
 
-### Docker Setup
+### Building and Running the Docker Image
 
 1. **Build the image:**
    ```
@@ -266,9 +271,9 @@ poetry run python scripts/resend_failed_events.py
 
 ## Monitoring and Logging
 
-- Prometheus metrics exposed at `/metrics` via `prometheus-fastapi-instrumentator`
-- Structured logging compatible with Loki/ELK
-- Health check endpoint at `/healthcheck`
+- Prometheus metrics are available at `/metrics` using `prometheus-fastapi-instrumentator` for scraping.
+- Logs are emitted in structured JSON format compatible with Loki/ELK.
+- Health check endpoint available at `/healthcheck`.
 
 ### Log Format
 
