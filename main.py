@@ -8,7 +8,6 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.db.database import engine, Base
 from app.api.routes import customers, tags, notes, gdpr
 from app.core.limiter import limiter
 

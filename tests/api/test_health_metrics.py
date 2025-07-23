@@ -4,7 +4,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_health_and_metrics_endpoints(db_session, async_client):
-    main_module = importlib.reload(__import__('main'))
+    importlib.reload(__import__('main'))
     client = async_client
 
     health_resp = await client.get('/health')

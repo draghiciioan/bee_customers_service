@@ -5,7 +5,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_create_and_get_tags(db_session, auth_headers, internal_headers, async_client):
-    main_module = importlib.reload(__import__('main'))
+    importlib.reload(__import__('main'))
     client = async_client
 
     customer_payload = {
@@ -47,7 +47,7 @@ async def test_create_and_get_tags(db_session, auth_headers, internal_headers, a
 
 @pytest.mark.asyncio
 async def test_create_and_delete_tags_new_routes(db_session, auth_headers, internal_headers, async_client):
-    main_module = importlib.reload(__import__('main'))
+    importlib.reload(__import__('main'))
     client = async_client
 
     customer_payload = {
@@ -94,7 +94,7 @@ async def test_create_and_delete_tags_new_routes(db_session, auth_headers, inter
 
 @pytest.mark.asyncio
 async def test_duplicate_tags_returns_400(db_session, auth_headers, internal_headers, async_client):
-    main_module = importlib.reload(__import__('main'))
+    importlib.reload(__import__('main'))
     client = async_client
 
     customer_payload = {

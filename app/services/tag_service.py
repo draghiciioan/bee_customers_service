@@ -6,8 +6,6 @@ import logging
 
 from app.models.customer_tag import CustomerTag
 from app.schemas.tag import TagCreate
-from app.services.log_service import send_log
-
 
 class TagService:
     def __init__(self, db: AsyncSession):
