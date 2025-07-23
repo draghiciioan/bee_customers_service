@@ -96,6 +96,17 @@ Once the service is running, API documentation is available at:
 | `DELETE /customers/{id}/notes/{note_id}` | Delete a note. | Admin roles |
 | `GET /customers/{id}/stats` | Retrieve order and appointment statistics. | Customer themselves or admin |
 
+#### Role Requirements
+
+| Action | Who is allowed? |
+|--------|----------------|
+| `GET /customers?business_id=...` | Only `admin_business` or `admin_manager` |
+| `GET /customers/{id}` | The customer themselves or administrators |
+| `PATCH /customers/{id}` | The customer themselves or administrators |
+| `POST /customers/{id}/tags` & `POST /customers/{id}/notes` | Administrators only |
+| `POST /customers/{id}/avatar` | The customer themselves or business administrators |
+| `GET /customers/{id}/stats` | The customer themselves or administrators |
+
 Request/response samples are available via Swagger UI. Below are a few examples:
 
 **PATCH /customers/{id}**
@@ -153,6 +164,16 @@ Response
   "last_order_date": "2025-07-15"
 }
 ```
+
+#### Validation Rules
+
+- Phone numbers must use the international format (`+407xxxxxxxx`).
+- The same tag label cannot be added twice to the same customer profile.
+
+#### Rate Limiting & Log Forwarding
+
+- `PATCH /customers/{id}` is rate limited using `CUSTOMER_PATCH_RATE` (default `5/minute`).
+- When `LOG_SERVICE_URL` is set, all structured logs are sent to that endpoint.
 
 ### Environment Variables
 
@@ -235,6 +256,7 @@ via the required `RABBITMQ_URL` environment variable. All events are sent to the
 - **2025-07-23**: Customer, tag and note actions now publish events with trace IDs.
 - **2025-07-23**: Added `LOG_SERVICE_URL` for forwarding logs to an external service.
 - **2025-07-24**: Added rate limiting for `PATCH /customers/{id}` using slowapi and `CUSTOMER_PATCH_RATE` setting.
+- **2025-07-25**: Documented role requirements, phone number format, tag uniqueness, and log forwarding details.
 
 ## License
 
@@ -246,4 +268,4 @@ via the required `RABBITMQ_URL` environment variable. All events are sent to the
 
 ---
 
-Last updated: July 24, 2025
+Last updated: July 25, 2025
