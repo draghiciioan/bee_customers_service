@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # CORS settings
-    CORS_ORIGINS: list = ["*"]
+    CORS_ORIGINS: list = [origin.strip() for origin in os.getenv("CORS_ORIGINS", "*").split(",")]
 
     # External services
     AUTH_SERVICE_URL: Optional[str] = os.getenv(

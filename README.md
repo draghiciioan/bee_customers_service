@@ -192,7 +192,7 @@ Response
 - `RABBITMQ_EXCHANGE` - Exchange used for publishing events (`bee.customers.events`).
 - `LOG_SERVICE_URL` - Optional endpoint for forwarding structured logs.
 - `CUSTOMER_PATCH_RATE` - Rate limit for `PATCH /customers/{id}` (default `5/minute`).
-- `CORS_ORIGINS` - Allowed origins for CORS requests (default `*`).
+- `CORS_ORIGINS` - Comma-separated list of allowed origins for CORS requests (default `*`).
 - `REDIS_URL` - Optional Redis connection used to store failed events (default `redis://localhost:6379/0`).
 
 File uploads currently use the local `uploads/` directory. No dedicated environment variables are defined for this feature.
