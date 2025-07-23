@@ -42,7 +42,7 @@ async def test_create_and_get_tag(db_session):
     assert retrieved.priority == 1
     assert retrieved.created_by == tag_data.created_by
 
-    tags = tag_service.get_tags_by_customer(customer_id)
+    tags = await tag_service.get_tags_by_customer(customer_id)
     assert len(tags) == 1
     assert tags[0].id == created.id
 

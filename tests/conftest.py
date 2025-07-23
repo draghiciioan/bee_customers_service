@@ -2,12 +2,14 @@ import os
 import importlib
 import sys
 import uuid
+import asyncio
 
 import pytest
 import pytest_asyncio
 import jwt
+import httpx
 
-os.environ.setdefault("DATABASE_URL", "sqlite:///./test.db")
+os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
 
 from app.core.config import settings
 
@@ -18,7 +20,7 @@ from app.db.database import Base
 @pytest.fixture(scope="function")
 def db_session(tmp_path):
     db_path = tmp_path / "test.db"
-    os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
+    os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{db_path}"
     importlib.reload(database)
     for mod in ["app.models.customer", "app.models.customer_tag", "app.services.tag_service"]:
         if mod in sys.modules:
@@ -26,8 +28,13 @@ def db_session(tmp_path):
     import app.models.customer  # noqa: F401
     import app.models.customer_tag  # noqa: F401
     import app.services.tag_service  # noqa: F401
-    Base.metadata.drop_all(bind=database.engine)
-    Base.metadata.create_all(bind=database.engine)
+
+    async def reset_db():
+        async with database.engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+            await conn.run_sync(Base.metadata.create_all)
+
+    asyncio.run(reset_db())
     session = database.SessionLocal()
     try:
         yield session
@@ -55,13 +62,41 @@ def internal_headers():
     return {"Authorization": f"Bearer {token}"}
 
 
+@pytest.fixture(autouse=True)
+def disable_event_publisher(monkeypatch, request):
+    if "test_event_publisher" in str(request.fspath):
+        return
+    async def dummy_publish(event_name: str, payload: dict, trace_id: str):
+        return None
+
+    monkeypatch.setattr(
+        "app.services.event_publisher.publish_event", dummy_publish
+    )
+
+    original_async_patch = httpx.AsyncClient.patch
+
+    async def async_patch(self, url, *args, **kwargs):
+        if url.startswith(settings.AUTH_SERVICE_URL):
+            return httpx.patch(url, *args, **kwargs)
+        return await original_async_patch(self, url, *args, **kwargs)
+
+    monkeypatch.setattr(httpx.AsyncClient, "patch", async_patch)
+
+
 @pytest_asyncio.fixture(scope="function")
-async def async_client(db_session):
+async def async_client(db_session, monkeypatch):
     os.environ["DATABASE_URL"] = db_session.bind.url.render_as_string(hide_password=False)
     importlib.reload(database)
     import main
     importlib.reload(main)
     from main import app
+
+    async def dummy_publish(event_name: str, payload: dict, trace_id: str):
+        return None
+
+    monkeypatch.setattr(
+        "app.services.event_publisher.publish_event", dummy_publish
+    )
 
     def override_get_db():
         try:

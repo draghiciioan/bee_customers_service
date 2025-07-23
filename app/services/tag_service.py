@@ -138,3 +138,18 @@ class TagService:
         await self.db.delete(db_tag)
         await self.db.commit()
         return True
+
+    async def delete_customer_tag(self, customer_id: UUID, tag_id: UUID) -> bool:
+        """Delete a tag belonging to a specific customer."""
+        result = await self.db.execute(
+            select(CustomerTag).where(
+                CustomerTag.id == tag_id,
+                CustomerTag.customer_id == customer_id,
+            )
+        )
+        db_tag = result.scalars().first()
+        if not db_tag:
+            return False
+        await self.db.delete(db_tag)
+        await self.db.commit()
+        return True
