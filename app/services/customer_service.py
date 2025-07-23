@@ -9,8 +9,6 @@ from app.core.config import settings
 
 from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate, CustomerUpdate
-from app.services.log_service import send_log
-
 
 class CustomerService:
     def __init__(self, db: AsyncSession):

@@ -20,7 +20,7 @@ async def create_customer(client, headers):
 
 @pytest.mark.asyncio
 async def test_patch_rate_limit(db_session, auth_headers, internal_headers, async_client):
-    main_module = importlib.reload(__import__("main"))
+    importlib.reload(__import__("main"))
     client = async_client
 
     customer_id = await create_customer(client, internal_headers)
