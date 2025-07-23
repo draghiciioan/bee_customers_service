@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from uuid import UUID
 
@@ -13,10 +13,10 @@ customer_router = APIRouter()
 
 
 @router.post("/", response_model=TagResponse, status_code=status.HTTP_201_CREATED)
-def create_tag(
+async def create_tag(
     tag: TagCreate,
     trace_id: str = Depends(trace_id_dependency),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),
 ):
     """
@@ -24,35 +24,35 @@ def create_tag(
     """
     tag_service = TagService(db)
     try:
-        return tag_service.create_tag(tag, trace_id)
+        return await tag_service.create_tag(tag, trace_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 @router.get("/customer/{customer_id}", response_model=List[TagResponse])
-def get_customer_tags(
+async def get_customer_tags(
     customer_id: UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),
 ):
     """
     Get all tags for a specific customer.
     """
     tag_service = TagService(db)
-    return tag_service.get_tags_by_customer(customer_id)
+    return await tag_service.get_tags_by_customer(customer_id)
 
 
 @router.delete("/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_tag(
+async def delete_tag(
     tag_id: UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),
 ):
     """
     Delete a tag.
     """
     tag_service = TagService(db)
-    success = tag_service.delete_tag(tag_id)
+    success = await tag_service.delete_tag(tag_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -66,18 +66,18 @@ def delete_tag(
     response_model=List[TagResponse],
     status_code=status.HTTP_201_CREATED,
 )
-def create_customer_tags(
+async def create_customer_tags(
     customer_id: UUID,
     payload: TagsCreate,
     trace_id: str = Depends(trace_id_dependency),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),
 ):
     """Create one or multiple tags for a customer."""
     tag_service = TagService(db)
     labels = [payload.label] if payload.label else (payload.labels or [])
     try:
-        created_tags = tag_service.create_tags(customer_id, labels, trace_id=trace_id)
+        created_tags = await tag_service.create_tags(customer_id, labels, trace_id=trace_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return created_tags
@@ -87,15 +87,15 @@ def create_customer_tags(
     "/{customer_id}/tags/{tag_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def delete_customer_tag(
+async def delete_customer_tag(
     customer_id: UUID,
     tag_id: UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),
 ):
     """Delete a tag from a specific customer."""
     tag_service = TagService(db)
-    success = tag_service.delete_tag(tag_id)
+    success = await tag_service.delete_tag(tag_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

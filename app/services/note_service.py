@@ -1,19 +1,20 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from typing import List, Optional
 from uuid import UUID
 import logging
 
 from app.models.customer_note import CustomerNote
 from app.schemas.note import NoteCreate, NoteCreatePayload
-from app.services.log_service import send_log_sync
+from app.services.log_service import send_log
 
 
 class NoteService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
         self.logger = logging.getLogger(__name__)
 
-    def create_note(self, note: NoteCreate, trace_id: str) -> CustomerNote:
+    async def create_note(self, note: NoteCreate, trace_id: str) -> CustomerNote:
         """
         Create a new note for a customer.
         """
@@ -23,8 +24,8 @@ class NoteService:
             created_by=note.created_by,
         )
         self.db.add(db_note)
-        self.db.commit()
-        self.db.refresh(db_note)
+        await self.db.commit()
+        await self.db.refresh(db_note)
 
         self.logger.info(
             "Note created",
@@ -34,24 +35,24 @@ class NoteService:
                 "trace_id": trace_id,
             },
         )
-        send_log_sync(
+        await send_log(
             "v1.customer.note_added",
             {"customer_id": str(db_note.customer_id), "note_id": str(db_note.id)},
             trace_id,
         )
 
-        from app.services.event_publisher import publish_event_sync
+        from app.services.event_publisher import publish_event
 
         payload = {
             "customer_id": str(db_note.customer_id),
             "note_id": str(db_note.id),
             "trace_id": trace_id,
         }
-        publish_event_sync("v1.customer.note_added", payload, trace_id)
+        await publish_event("v1.customer.note_added", payload, trace_id)
 
         return db_note
 
-    def create_customer_note(
+    async def create_customer_note(
         self, customer_id: UUID, payload: NoteCreatePayload, trace_id: str
     ) -> CustomerNote:
         """Create a note when the customer_id is provided separately."""
@@ -60,48 +61,49 @@ class NoteService:
             content=payload.content,
             created_by=payload.created_by,
         )
-        return self.create_note(data, trace_id)
+        return await self.create_note(data, trace_id)
 
-    def get_note(self, note_id: UUID) -> Optional[CustomerNote]:
+    async def get_note(self, note_id: UUID) -> Optional[CustomerNote]:
         """
         Get a note by ID.
         """
-        return self.db.query(CustomerNote).filter(CustomerNote.id == note_id).first()
+        result = await self.db.execute(
+            select(CustomerNote).where(CustomerNote.id == note_id)
+        )
+        return result.scalars().first()
 
-    def get_notes_by_customer(self, customer_id: UUID) -> List[CustomerNote]:
+    async def get_notes_by_customer(self, customer_id: UUID) -> List[CustomerNote]:
         """
         Get all notes for a specific customer.
         """
-        return (
-            self.db.query(CustomerNote)
-            .filter(CustomerNote.customer_id == customer_id)
-            .all()
+        result = await self.db.execute(
+            select(CustomerNote).where(CustomerNote.customer_id == customer_id)
         )
+        return result.scalars().all()
 
-    def delete_note(self, note_id: UUID) -> bool:
+    async def delete_note(self, note_id: UUID) -> bool:
         """
         Delete a note.
         """
-        db_note = self.get_note(note_id)
+        db_note = await self.get_note(note_id)
         if not db_note:
             return False
 
-        self.db.delete(db_note)
-        self.db.commit()
+        await self.db.delete(db_note)
+        await self.db.commit()
         return True
 
-    def delete_customer_note(self, customer_id: UUID, note_id: UUID) -> bool:
+    async def delete_customer_note(self, customer_id: UUID, note_id: UUID) -> bool:
         """Delete a note belonging to a specific customer."""
-        db_note = (
-            self.db.query(CustomerNote)
-            .filter(
+        result = await self.db.execute(
+            select(CustomerNote).where(
                 CustomerNote.id == note_id,
                 CustomerNote.customer_id == customer_id,
             )
-            .first()
         )
+        db_note = result.scalars().first()
         if not db_note:
             return False
-        self.db.delete(db_note)
-        self.db.commit()
+        await self.db.delete(db_note)
+        await self.db.commit()
         return True

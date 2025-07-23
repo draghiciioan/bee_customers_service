@@ -6,7 +6,7 @@ from app.services.customer_service import CustomerService
 from app.schemas.customer import CustomerCreate, CustomerUpdate, Gender
 
 
-def create_sample_customer(service: CustomerService) -> uuid.UUID:
+async def create_sample_customer(service: CustomerService) -> uuid.UUID:
     data = CustomerCreate(
         user_id=uuid.uuid4(),
         business_id=uuid.uuid4(),
@@ -16,34 +16,38 @@ def create_sample_customer(service: CustomerService) -> uuid.UUID:
         gender=Gender.MALE,
         avatar_url=None,
     )
-    customer = service.create_customer(data, "test")
+    customer = await service.create_customer(data, "test")
     return customer.id
 
 
-def test_create_and_get_customer(db_session):
+@pytest.mark.asyncio
+async def test_create_and_get_customer(db_session):
     service = CustomerService(db_session)
-    customer_id = create_sample_customer(service)
-    retrieved = service.get_customer(customer_id)
+    customer_id = await create_sample_customer(service)
+    retrieved = await service.get_customer(customer_id)
     assert retrieved is not None
     assert retrieved.full_name == "John Doe"
 
 
-def test_update_customer(db_session):
+@pytest.mark.asyncio
+async def test_update_customer(db_session):
     service = CustomerService(db_session)
-    customer_id = create_sample_customer(service)
+    customer_id = await create_sample_customer(service)
     update_data = CustomerUpdate(full_name="Jane Doe")
-    updated = service.update_customer(customer_id, update_data, "trace")
+    updated = await service.update_customer(customer_id, update_data, "trace")
     assert updated.full_name == "Jane Doe"
 
 
-def test_delete_customer(db_session):
+@pytest.mark.asyncio
+async def test_delete_customer(db_session):
     service = CustomerService(db_session)
-    customer_id = create_sample_customer(service)
-    assert service.delete_customer(customer_id) is True
-    assert service.get_customer(customer_id) is None
+    customer_id = await create_sample_customer(service)
+    assert await service.delete_customer(customer_id) is True
+    assert await service.get_customer(customer_id) is None
 
 
-def test_create_customer_emits_event(db_session, monkeypatch):
+@pytest.mark.asyncio
+async def test_create_customer_emits_event(db_session, monkeypatch):
     service = CustomerService(db_session)
 
     captured = []
@@ -63,7 +67,7 @@ def test_create_customer_emits_event(db_session, monkeypatch):
         avatar_url=None,
     )
 
-    created = service.create_customer(data, "trace123")
+    created = await service.create_customer(data, "trace123")
 
     assert len(captured) == 1
     name, payload, trace_id = captured[0]
@@ -75,7 +79,8 @@ def test_create_customer_emits_event(db_session, monkeypatch):
     assert trace_id == "trace123"
 
 
-def test_update_customer_emits_event(db_session, monkeypatch):
+@pytest.mark.asyncio
+async def test_update_customer_emits_event(db_session, monkeypatch):
     service = CustomerService(db_session)
 
     data = CustomerCreate(
@@ -87,7 +92,7 @@ def test_update_customer_emits_event(db_session, monkeypatch):
         gender=Gender.MALE,
         avatar_url=None,
     )
-    customer = service.create_customer(data, "init")
+    customer = await service.create_customer(data, "init")
 
     captured = []
 
@@ -97,7 +102,7 @@ def test_update_customer_emits_event(db_session, monkeypatch):
     monkeypatch.setattr("app.services.event_publisher.publish_event", dummy_publish)
 
     update_data = CustomerUpdate(full_name="New Name")
-    service.update_customer(customer.id, update_data, "trace_update")
+    await service.update_customer(customer.id, update_data, "trace_update")
 
     assert len(captured) == 1
     name, payload, trace_id = captured[0]
@@ -124,7 +129,8 @@ def test_update_customer_invalid_phone():
         CustomerUpdate(phone="abc")
 
 
-def test_logging_on_create(db_session, monkeypatch):
+@pytest.mark.asyncio
+async def test_logging_on_create(db_session, monkeypatch):
     service = CustomerService(db_session)
 
     captured = []
@@ -144,7 +150,7 @@ def test_logging_on_create(db_session, monkeypatch):
         avatar_url=None,
     )
 
-    created = service.create_customer(data, "trace_log")
+    created = await service.create_customer(data, "trace_log")
 
     assert len(captured) == 1
     event, payload, trace_id = captured[0]
@@ -154,10 +160,12 @@ def test_logging_on_create(db_session, monkeypatch):
     assert trace_id == "trace_log"
 
 
-def test_auth_service_called_on_email_change(db_session, monkeypatch):
+@pytest.mark.asyncio
+async def test_auth_service_called_on_email_change(db_session, monkeypatch):
     service = CustomerService(db_session)
-    customer_id = create_sample_customer(service)
-    user_id = service.get_customer(customer_id).user_id
+    customer_id = await create_sample_customer(service)
+    user = await service.get_customer(customer_id)
+    user_id = user.user_id
 
     called = []
 
@@ -169,7 +177,7 @@ def test_auth_service_called_on_email_change(db_session, monkeypatch):
 
     monkeypatch.setattr(httpx, "patch", dummy_patch)
 
-    service.update_customer(customer_id, CustomerUpdate(email="new@example.com"), "trace")
+    await service.update_customer(customer_id, CustomerUpdate(email="new@example.com"), "trace")
 
     assert len(called) == 1
     url, data = called[0]
@@ -177,10 +185,12 @@ def test_auth_service_called_on_email_change(db_session, monkeypatch):
     assert data == {"email": "new@example.com"}
 
 
-def test_auth_service_called_on_phone_change(db_session, monkeypatch):
+@pytest.mark.asyncio
+async def test_auth_service_called_on_phone_change(db_session, monkeypatch):
     service = CustomerService(db_session)
-    customer_id = create_sample_customer(service)
-    user_id = service.get_customer(customer_id).user_id
+    customer_id = await create_sample_customer(service)
+    user = await service.get_customer(customer_id)
+    user_id = user.user_id
 
     called = []
 
@@ -192,7 +202,7 @@ def test_auth_service_called_on_phone_change(db_session, monkeypatch):
 
     monkeypatch.setattr(httpx, "patch", dummy_patch)
 
-    service.update_customer(customer_id, CustomerUpdate(phone="0799999999"), "trace")
+    await service.update_customer(customer_id, CustomerUpdate(phone="0799999999"), "trace")
 
     assert len(called) == 1
     url, data = called[0]

@@ -1,5 +1,5 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import or_, select
 from typing import List, Optional
 from uuid import UUID
 import logging
@@ -9,29 +9,32 @@ from app.core.config import settings
 
 from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate, CustomerUpdate
-from app.services.log_service import send_log_sync
+from app.services.log_service import send_log
 
 
 class CustomerService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
         self.logger = logging.getLogger(__name__)
 
-    def _sync_auth_profile(self, user_id: UUID, data: dict) -> None:
+    async def _sync_auth_profile(self, user_id: UUID, data: dict) -> None:
         """Propagate updates to the auth service."""
         if not settings.AUTH_SERVICE_URL:
             return
 
         url = f"{settings.AUTH_SERVICE_URL}/api/users/{user_id}"
         try:
-            httpx.patch(url, json=data, timeout=2)
+            async with httpx.AsyncClient() as client:
+                await client.patch(url, json=data, timeout=2)
         except Exception as exc:
             self.logger.warning(
                 "Failed to notify auth service",
                 extra={"user_id": str(user_id), "error": str(exc)},
             )
 
-    def create_customer(self, customer: CustomerCreate, trace_id: str) -> Customer:
+    async def create_customer(
+        self, customer: CustomerCreate, trace_id: str
+    ) -> Customer:
         """
         Create a new customer in the database.
         """
@@ -45,8 +48,8 @@ class CustomerService:
             avatar_url=customer.avatar_url,
         )
         self.db.add(db_customer)
-        self.db.commit()
-        self.db.refresh(db_customer)
+        await self.db.commit()
+        await self.db.refresh(db_customer)
 
         self.logger.info(
             "Customer created",
@@ -56,7 +59,9 @@ class CustomerService:
                 "trace_id": trace_id,
             },
         )
-        send_log_sync(
+        from app.services.log_service import send_log
+
+        await send_log(
             "v1.customer.created",
             {
                 "customer_id": str(db_customer.id),
@@ -65,7 +70,7 @@ class CustomerService:
             trace_id,
         )
 
-        from app.services.event_publisher import publish_event_sync
+        from app.services.event_publisher import publish_event
 
         payload = {
             "id": str(db_customer.id),
@@ -73,17 +78,18 @@ class CustomerService:
             "business_id": str(db_customer.business_id),
             "trace_id": trace_id,
         }
-        publish_event_sync("v1.customer.created", payload, trace_id)
+        await publish_event("v1.customer.created", payload, trace_id)
 
         return db_customer
 
-    def get_customer(self, customer_id: UUID) -> Optional[Customer]:
-        """
-        Get a customer by ID.
-        """
-        return self.db.query(Customer).filter(Customer.id == customer_id).first()
+    async def get_customer(self, customer_id: UUID) -> Optional[Customer]:
+        """Get a customer by ID."""
+        result = await self.db.execute(
+            select(Customer).where(Customer.id == customer_id)
+        )
+        return result.scalars().first()
 
-    def get_customers(
+    async def get_customers(
         self,
         skip: int = 0,
         limit: int = 100,
@@ -91,13 +97,13 @@ class CustomerService:
         query: Optional[str] = None,
     ) -> List[Customer]:
         """Return customers filtered by business ID and optional query string."""
-        db_query = self.db.query(Customer)
+        stmt = select(Customer)
 
         if business_id:
-            db_query = db_query.filter(Customer.business_id == business_id)
+            stmt = stmt.where(Customer.business_id == business_id)
 
         if query:
-            db_query = db_query.filter(
+            stmt = stmt.where(
                 or_(
                     Customer.full_name.ilike(f"%{query}%"),
                     Customer.email.ilike(f"%{query}%"),
@@ -105,15 +111,17 @@ class CustomerService:
                 )
             )
 
-        return db_query.offset(skip).limit(limit).all()
+        stmt = stmt.offset(skip).limit(limit)
+        result = await self.db.execute(stmt)
+        return result.scalars().all()
 
-    def update_customer(
+    async def update_customer(
         self, customer_id: UUID, customer_data: CustomerUpdate, trace_id: str
     ) -> Optional[Customer]:
         """
         Update a customer's information.
         """
-        db_customer = self.get_customer(customer_id)
+        db_customer = await self.get_customer(customer_id)
         if not db_customer:
             return None
 
@@ -130,18 +138,18 @@ class CustomerService:
                 setattr(db_customer, key, value)
                 fields_changed.append(key)
 
-        self.db.commit()
-        self.db.refresh(db_customer)
+        await self.db.commit()
+        await self.db.refresh(db_customer)
 
         if fields_changed:
-            from app.services.event_publisher import publish_event_sync
+            from app.services.event_publisher import publish_event
 
             payload = {
                 "id": str(db_customer.id),
                 "fields_changed": fields_changed,
                 "trace_id": trace_id,
             }
-            publish_event_sync("v1.customer.updated", payload, trace_id)
+            await publish_event("v1.customer.updated", payload, trace_id)
 
         if fields_changed:
             self.logger.info(
@@ -152,7 +160,9 @@ class CustomerService:
                     "trace_id": trace_id,
                 },
             )
-            send_log_sync(
+            from app.services.log_service import send_log
+
+            await send_log(
                 "v1.customer.updated",
                 {"customer_id": str(db_customer.id), "fields_changed": fields_changed},
                 trace_id,
@@ -164,29 +174,29 @@ class CustomerService:
                 if field in fields_changed
             }
             if auth_fields:
-                self._sync_auth_profile(db_customer.user_id, auth_fields)
+                await self._sync_auth_profile(db_customer.user_id, auth_fields)
 
         return db_customer
 
-    def delete_customer(self, customer_id: UUID) -> bool:
+    async def delete_customer(self, customer_id: UUID) -> bool:
         """
         Delete a customer.
         """
-        db_customer = self.get_customer(customer_id)
+        db_customer = await self.get_customer(customer_id)
         if not db_customer:
             return False
 
-        self.db.delete(db_customer)
-        self.db.commit()
+        await self.db.delete(db_customer)
+        await self.db.commit()
         return True
 
-    def update_avatar(self, customer_id: UUID, avatar_url: str) -> Optional[Customer]:
+    async def update_avatar(self, customer_id: UUID, avatar_url: str) -> Optional[Customer]:
         """Update avatar URL for a customer."""
-        db_customer = self.get_customer(customer_id)
+        db_customer = await self.get_customer(customer_id)
         if not db_customer:
             return None
 
         db_customer.avatar_url = avatar_url
-        self.db.commit()
-        self.db.refresh(db_customer)
+        await self.db.commit()
+        await self.db.refresh(db_customer)
         return db_customer

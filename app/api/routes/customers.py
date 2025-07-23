@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from uuid import UUID, uuid4
 
@@ -21,30 +21,30 @@ router = APIRouter()
 
 
 @router.post("/", response_model=CustomerResponse, status_code=status.HTTP_201_CREATED)
-def create_customer(
+async def create_customer(
     customer: CustomerCreate,
     trace_id: str = Depends(trace_id_dependency),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(require_internal_service),
 ):
     """
     Create a new customer profile.
     """
     customer_service = CustomerService(db)
-    return customer_service.create_customer(customer, trace_id)
+    return await customer_service.create_customer(customer, trace_id)
 
 
 @router.get("/{customer_id}", response_model=CustomerResponse)
-def get_customer(
+async def get_customer(
     customer_id: UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(require_customer_or_admin),
 ):
     """
     Get a customer by ID.
     """
     customer_service = CustomerService(db)
-    customer = customer_service.get_customer(customer_id)
+    customer = await customer_service.get_customer(customer_id)
     if not customer:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -54,36 +54,36 @@ def get_customer(
 
 
 @router.get("/", response_model=List[CustomerResponse])
-def get_customers(
+async def get_customers(
     skip: int = 0,
     limit: int = 100,
     business_id: Optional[UUID] = None,
     query: Optional[str] = Query(None, min_length=3),
     search: Optional[str] = Query(None, alias="search", include_in_schema=False),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),
 ):
     """Return customers filtered by optional business ID and search query."""
     customer_service = CustomerService(db)
     search_term = query or search
-    return customer_service.get_customers(skip, limit, business_id, search_term)
+    return await customer_service.get_customers(skip, limit, business_id, search_term)
 
 
 @router.patch("/{customer_id}", response_model=CustomerResponse)
 @limiter.limit(settings.CUSTOMER_PATCH_RATE)
-def update_customer(
+async def update_customer(
     customer_id: UUID,
     customer: CustomerUpdate,
     request: Request,
     trace_id: str = Depends(trace_id_dependency),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(require_customer_or_admin),
 ):
     """
     Update a customer's information.
     """
     customer_service = CustomerService(db)
-    updated_customer = customer_service.update_customer(
+    updated_customer = await customer_service.update_customer(
         customer_id, customer, trace_id
     )
     if not updated_customer:
@@ -98,7 +98,7 @@ def update_customer(
 async def upload_avatar(
     customer_id: UUID,
     file: UploadFile = File(...),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_customer_or_admin)
 ):
     """Upload and set a customer's avatar image."""
@@ -119,23 +119,23 @@ async def upload_avatar(
 
     avatar_url = f"/uploads/{filename}"
     customer_service = CustomerService(db)
-    customer = customer_service.update_avatar(customer_id, avatar_url)
+    customer = await customer_service.update_avatar(customer_id, avatar_url)
     if not customer:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found")
     return customer
 
 
 @router.delete("/{customer_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_customer(
+async def delete_customer(
     customer_id: UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(require_customer_or_admin),
 ):
     """
     Delete a customer.
     """
     customer_service = CustomerService(db)
-    success = customer_service.delete_customer(customer_id)
+    success = await customer_service.delete_customer(customer_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -146,16 +146,16 @@ def delete_customer(
 
 @router.get("/{customer_id}/stats", response_model=dict)
 @router.get("/{customer_id}/statistics", response_model=dict, deprecated=True)
-def get_customer_statistics(
+async def get_customer_statistics(
     customer_id: UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(require_customer_or_admin),
 ):
     """
     Get statistics for a specific customer.
     """
     customer_service = CustomerService(db)
-    customer = customer_service.get_customer(customer_id)
+    customer = await customer_service.get_customer(customer_id)
     if not customer:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
