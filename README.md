@@ -60,7 +60,7 @@ Check the **Actions** tab or your pull request checks to see the results.
 
 2. Install dependencies:
    ```
-   poetry install
+   poetry install --with dev
    ```
 
 3. Set up environment variables:
@@ -78,6 +78,17 @@ The `.env.example` file lists all supported settings.
    ```
    poetry run uvicorn main:app --reload
    ```
+
+### Running Tests Locally
+
+Install dev dependencies and execute the test suite:
+
+```bash
+poetry install --with dev
+poetry run pytest
+```
+
+The CI workflow defined in `.github/workflows/ci.yml` uses the same commands.
 
 ### Building and Running the Docker Image
 
