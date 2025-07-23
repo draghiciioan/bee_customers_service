@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from uuid import UUID, uuid4
@@ -6,6 +6,8 @@ from uuid import UUID, uuid4
 from app.db.database import get_db
 from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
 from app.services.customer_service import CustomerService
+from app.core.config import settings
+from app.core.limiter import limiter
 from app.api.dependencies import (
     User,
     require_customer_or_admin,
@@ -68,9 +70,11 @@ def get_customers(
 
 
 @router.patch("/{customer_id}", response_model=CustomerResponse)
+@limiter.limit(settings.CUSTOMER_PATCH_RATE)
 def update_customer(
     customer_id: UUID,
     customer: CustomerUpdate,
+    request: Request,
     trace_id: str = Depends(trace_id_dependency),
     db: Session = Depends(get_db),
     _: User = Depends(require_customer_or_admin),
