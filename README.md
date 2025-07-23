@@ -259,6 +259,29 @@ via the required `RABBITMQ_URL` environment variable. All events are sent to the
 - Structured logging compatible with Loki/ELK
 - Health check endpoint at `/healthcheck`
 
+### Log Format
+
+Each log entry is emitted as a single JSON object with the following fields:
+
+- `timestamp` – ISO 8601 time of the event
+- `level` – log level name in lowercase
+- `service_name` – identifies this service
+- `trace_id` – correlation identifier from the request
+- `message` – log text
+
+Example:
+
+```json
+{
+  "timestamp": "2025-07-25T10:00:00Z",
+  "level": "info",
+  "service_name": "BeeConect Customer Service",
+  "trace_id": "uuid",
+  "message": "Customer created",
+  "customer_id": "uuid"
+}
+```
+
 ## Changelog
 
 - **2025-07-22**: Added explicit indexes for `Customer` model (`business_id`, `user_id`, `full_name`, `phone`). Existing deployments require table recreation to apply these indexes.
@@ -267,6 +290,7 @@ via the required `RABBITMQ_URL` environment variable. All events are sent to the
 - **2025-07-23**: Added `LOG_SERVICE_URL` for forwarding logs to an external service.
 - **2025-07-24**: Added rate limiting for `PATCH /customers/{id}` using slowapi and `CUSTOMER_PATCH_RATE` setting.
 - **2025-07-25**: Documented role requirements, phone number format, tag uniqueness, and log forwarding details.
+- **2025-07-26**: Added JSON log formatter with `timestamp`, `level`, `service_name`, and `trace_id` fields.
 
 ## License
 
@@ -278,4 +302,4 @@ via the required `RABBITMQ_URL` environment variable. All events are sent to the
 
 ---
 
-Last updated: July 25, 2025
+Last updated: July 26, 2025
