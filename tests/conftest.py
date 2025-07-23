@@ -85,7 +85,8 @@ def disable_event_publisher(monkeypatch, request):
 
 @pytest_asyncio.fixture(scope="function")
 async def async_client(db_session, monkeypatch):
-    os.environ["DATABASE_URL"] = db_session.bind.url.render_as_string(hide_password=False)
+    db_path = db_session.bind.url.database
+    os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{db_path}"
     importlib.reload(database)
     import main
     importlib.reload(main)
