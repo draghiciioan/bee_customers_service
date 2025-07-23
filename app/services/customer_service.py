@@ -3,6 +3,9 @@ from sqlalchemy import or_
 from typing import List, Optional
 from uuid import UUID
 import logging
+import httpx
+
+from app.core.config import settings
 
 from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate, CustomerUpdate
@@ -13,6 +16,20 @@ class CustomerService:
     def __init__(self, db: Session):
         self.db = db
         self.logger = logging.getLogger(__name__)
+
+    def _sync_auth_profile(self, user_id: UUID, data: dict) -> None:
+        """Propagate updates to the auth service."""
+        if not settings.AUTH_SERVICE_URL:
+            return
+
+        url = f"{settings.AUTH_SERVICE_URL}/api/users/{user_id}"
+        try:
+            httpx.patch(url, json=data, timeout=2)
+        except Exception as exc:
+            self.logger.warning(
+                "Failed to notify auth service",
+                extra={"user_id": str(user_id), "error": str(exc)},
+            )
 
     def create_customer(self, customer: CustomerCreate, trace_id: str) -> Customer:
         """
@@ -140,6 +157,14 @@ class CustomerService:
                 {"customer_id": str(db_customer.id), "fields_changed": fields_changed},
                 trace_id,
             )
+
+            auth_fields = {
+                field: getattr(db_customer, field)
+                for field in ("email", "phone")
+                if field in fields_changed
+            }
+            if auth_fields:
+                self._sync_auth_profile(db_customer.user_id, auth_fields)
 
         return db_customer
 

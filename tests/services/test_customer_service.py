@@ -1,5 +1,6 @@
 import uuid
 import pytest
+import httpx
 from pydantic import ValidationError
 from app.services.customer_service import CustomerService
 from app.schemas.customer import CustomerCreate, CustomerUpdate, Gender
@@ -151,3 +152,49 @@ def test_logging_on_create(db_session, monkeypatch):
     assert payload["customer_id"] == str(created.id)
     assert payload["business_id"] == str(data.business_id)
     assert trace_id == "trace_log"
+
+
+def test_auth_service_called_on_email_change(db_session, monkeypatch):
+    service = CustomerService(db_session)
+    customer_id = create_sample_customer(service)
+    user_id = service.get_customer(customer_id).user_id
+
+    called = []
+
+    def dummy_patch(url, json, timeout):
+        called.append((url, json))
+        class Response:
+            status_code = 200
+        return Response()
+
+    monkeypatch.setattr(httpx, "patch", dummy_patch)
+
+    service.update_customer(customer_id, CustomerUpdate(email="new@example.com"), "trace")
+
+    assert len(called) == 1
+    url, data = called[0]
+    assert url.endswith(f"/api/users/{user_id}")
+    assert data == {"email": "new@example.com"}
+
+
+def test_auth_service_called_on_phone_change(db_session, monkeypatch):
+    service = CustomerService(db_session)
+    customer_id = create_sample_customer(service)
+    user_id = service.get_customer(customer_id).user_id
+
+    called = []
+
+    def dummy_patch(url, json, timeout):
+        called.append((url, json))
+        class Response:
+            status_code = 200
+        return Response()
+
+    monkeypatch.setattr(httpx, "patch", dummy_patch)
+
+    service.update_customer(customer_id, CustomerUpdate(phone="0799999999"), "trace")
+
+    assert len(called) == 1
+    url, data = called[0]
+    assert url.endswith(f"/api/users/{user_id}")
+    assert data == {"phone": "0799999999"}
