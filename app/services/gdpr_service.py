@@ -31,11 +31,11 @@ class GDPRService:
         if not customer:
             return None
             
-        # Get customer tags
-        result = await self.db.execute(
-            select(CustomerTag).where(CustomerTag.customer_id == customer.id)
-        )
-        tags = result.scalars().all()
+        # Get customer tags using TagService for consistency
+        from app.services.tag_service import TagService
+
+        tag_service = TagService(self.db)
+        tags = await tag_service.get_tags_by_customer(customer.id)
         
         # Get customer notes
         result = await self.db.execute(
