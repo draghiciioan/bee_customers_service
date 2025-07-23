@@ -158,6 +158,7 @@ Response
 - `DATABASE_URL` - PostgreSQL connection string.
 - `RABBITMQ_URL` - RabbitMQ connection URL.
 - `RABBITMQ_EXCHANGE` - Exchange used for publishing events (`bee.customers.events`).
+- `LOG_SERVICE_URL` - Optional endpoint for forwarding structured logs.
 
 File uploads currently use the local `uploads/` directory. No dedicated environment variables are defined for this feature.
 
@@ -230,6 +231,7 @@ via the required `RABBITMQ_URL` environment variable. All events are sent to the
 - **2025-07-22**: Added explicit indexes for `Customer` model (`business_id`, `user_id`, `full_name`, `phone`). Existing deployments require table recreation to apply these indexes.
 - **2025-07-22**: Introduced `RABBITMQ_URL` and `RABBITMQ_EXCHANGE` settings.
 - **2025-07-23**: Customer, tag and note actions now publish events with trace IDs.
+- **2025-07-23**: Added `LOG_SERVICE_URL` for forwarding logs to an external service.
 
 ## License
 

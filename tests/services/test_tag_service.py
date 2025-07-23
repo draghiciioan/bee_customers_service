@@ -69,9 +69,7 @@ def test_tagging_emits_event(db_session, monkeypatch):
     async def dummy_publish(event_name: str, payload: dict, trace_id: str):
         captured.append((event_name, payload, trace_id))
 
-    monkeypatch.setattr(
-        "app.services.event_publisher.publish_event", dummy_publish
-    )
+    monkeypatch.setattr("app.services.event_publisher.publish_event", dummy_publish)
 
     tag = tag_service.create_tag(
         TagCreate(customer_id=customer_id, label="VIP", created_by=uuid.uuid4()),
@@ -86,3 +84,30 @@ def test_tagging_emits_event(db_session, monkeypatch):
     assert payload["label"] == "VIP"
     assert payload["trace_id"] == "trace123"
     assert trace_id == "trace123"
+
+
+def test_logging_on_tag_creation(db_session, monkeypatch):
+    customer_service = CustomerService(db_session)
+    customer_id = create_sample_customer(customer_service)
+
+    tag_service = TagService(db_session)
+
+    captured = []
+
+    async def dummy_log(event: str, data: dict, trace_id: str):
+        captured.append((event, data, trace_id))
+
+    monkeypatch.setattr("app.services.log_service.send_log", dummy_log)
+
+    tag = tag_service.create_tag(
+        TagCreate(customer_id=customer_id, label="VIP", created_by=uuid.uuid4()),
+        "trace_log",
+    )
+
+    assert len(captured) == 1
+    event, payload, trace_id = captured[0]
+    assert event == "v1.customer.tagged"
+    assert payload["customer_id"] == str(customer_id)
+    assert payload["tag_id"] == str(tag.id)
+    assert payload["label"] == "VIP"
+    assert trace_id == "trace_log"

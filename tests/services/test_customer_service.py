@@ -5,7 +5,6 @@ from app.services.customer_service import CustomerService
 from app.schemas.customer import CustomerCreate, CustomerUpdate, Gender
 
 
-
 def create_sample_customer(service: CustomerService) -> uuid.UUID:
     data = CustomerCreate(
         user_id=uuid.uuid4(),
@@ -51,9 +50,7 @@ def test_create_customer_emits_event(db_session, monkeypatch):
     async def dummy_publish(event_name: str, payload: dict, trace_id: str):
         captured.append((event_name, payload, trace_id))
 
-    monkeypatch.setattr(
-        "app.services.event_publisher.publish_event", dummy_publish
-    )
+    monkeypatch.setattr("app.services.event_publisher.publish_event", dummy_publish)
 
     data = CustomerCreate(
         user_id=uuid.uuid4(),
@@ -96,9 +93,7 @@ def test_update_customer_emits_event(db_session, monkeypatch):
     async def dummy_publish(event_name: str, payload: dict, trace_id: str):
         captured.append((event_name, payload, trace_id))
 
-    monkeypatch.setattr(
-        "app.services.event_publisher.publish_event", dummy_publish
-    )
+    monkeypatch.setattr("app.services.event_publisher.publish_event", dummy_publish)
 
     update_data = CustomerUpdate(full_name="New Name")
     service.update_customer(customer.id, update_data, "trace_update")
@@ -127,3 +122,32 @@ def test_update_customer_invalid_phone():
     with pytest.raises(ValidationError):
         CustomerUpdate(phone="abc")
 
+
+def test_logging_on_create(db_session, monkeypatch):
+    service = CustomerService(db_session)
+
+    captured = []
+
+    async def dummy_log(event: str, data: dict, trace_id: str):
+        captured.append((event, data, trace_id))
+
+    monkeypatch.setattr("app.services.log_service.send_log", dummy_log)
+
+    data = CustomerCreate(
+        user_id=uuid.uuid4(),
+        business_id=uuid.uuid4(),
+        full_name="Log User",
+        email="log@example.com",
+        phone="0712345678",
+        gender=Gender.MALE,
+        avatar_url=None,
+    )
+
+    created = service.create_customer(data, "trace_log")
+
+    assert len(captured) == 1
+    event, payload, trace_id = captured[0]
+    assert event == "v1.customer.created"
+    assert payload["customer_id"] == str(created.id)
+    assert payload["business_id"] == str(data.business_id)
+    assert trace_id == "trace_log"

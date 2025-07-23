@@ -5,6 +5,7 @@ import logging
 
 from app.models.customer_tag import CustomerTag
 from app.schemas.tag import TagCreate
+from app.services.log_service import send_log_sync
 
 
 class TagService:
@@ -81,6 +82,15 @@ class TagService:
                     "trace_id": trace_id,
                 },
             )
+            send_log_sync(
+                "v1.customer.tagged",
+                {
+                    "customer_id": str(tag.customer_id),
+                    "tag_id": str(tag.id),
+                    "label": tag.label,
+                },
+                trace_id,
+            )
 
         from app.services.event_publisher import publish_event_sync
 
@@ -105,7 +115,11 @@ class TagService:
         """
         Get all tags for a specific customer.
         """
-        return self.db.query(CustomerTag).filter(CustomerTag.customer_id == customer_id).all()
+        return (
+            self.db.query(CustomerTag)
+            .filter(CustomerTag.customer_id == customer_id)
+            .all()
+        )
 
     def delete_tag(self, tag_id: UUID) -> bool:
         """
@@ -114,7 +128,7 @@ class TagService:
         db_tag = self.get_tag(tag_id)
         if not db_tag:
             return False
-            
+
         self.db.delete(db_tag)
         self.db.commit()
         return True
