@@ -86,3 +86,27 @@ async def test_gdpr_delete_forbidden_role(async_client):
     }
     resp = await client.post('/api/gdpr/delete', json=payload, headers=headers)
     assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_tags_routes_require_admin(async_client):
+    """Creating or retrieving tags should require admin credentials."""
+    importlib.reload(__import__('main'))
+    # create tag without auth
+    tag_payload = {"customer_id": str(uuid.uuid4()), "label": "VIP"}
+    resp = await async_client.post('/api/customers/tags/', json=tag_payload)
+    assert resp.status_code in (401, 403)
+
+    # list tags without auth
+    resp = await async_client.get('/api/customers/tags/customer/00000000-0000-0000-0000-000000000000')
+    assert resp.status_code in (401, 403)
+
+
+@pytest.mark.asyncio
+async def test_notes_routes_require_admin(async_client):
+    """Adding notes should require admin credentials."""
+    importlib.reload(__import__('main'))
+    note_payload = {"content": "test", "created_by": str(uuid.uuid4())}
+    url = '/api/customers/00000000-0000-0000-0000-000000000000/notes'
+    resp = await async_client.post(url, json=note_payload)
+    assert resp.status_code in (401, 403)

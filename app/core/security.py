@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
+from jose.exceptions import ExpiredSignatureError
 
 from app.core.config import settings
 from app.schemas.user import User
@@ -12,9 +13,21 @@ bearer_scheme = HTTPBearer()
 
 
 def decode_jwt(token: str) -> dict:
-    """Decode a JWT token using the project secret key."""
+    """Decode a JWT token using the project secret key.
+
+    Raises an HTTP 401 error if the token is invalid or expired.
+    """
     try:
-        return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        return jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+        )
+    except ExpiredSignatureError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+        ) from exc
     except JWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -28,10 +41,20 @@ def get_current_user(
 ) -> User:
     """Return the current user extracted from the Authorization header."""
     payload = decode_jwt(credentials.credentials)
+    sub = payload.get("sub")
+    if not sub:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
     try:
-        user_id = UUID(payload.get("sub"))
-    except Exception as exc:  # pragma: no cover - sanity check
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload") from exc
+        user_id = UUID(sub)
+    except ValueError as exc:  # pragma: no cover - sanity check
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        ) from exc
+
     role = payload.get("role", "customer")
     is_admin = role.startswith("admin")
     user = User(id=user_id, is_admin=is_admin, role=role)
