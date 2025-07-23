@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.core.config import settings
 from app.db.database import engine, Base
@@ -36,6 +37,9 @@ app.include_router(tags.router, prefix="/api/customers/tags", tags=["tags"])
 app.include_router(tags.customer_router, prefix="/api/customers", tags=["tags"])
 app.include_router(notes.customer_router, prefix="/api/customers", tags=["notes"])
 app.include_router(gdpr.router, prefix="/api/gdpr", tags=["gdpr"])
+
+# Initialize Prometheus metrics instrumentation
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 
 @app.get("/", tags=["root"])

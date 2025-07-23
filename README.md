@@ -255,7 +255,7 @@ via the required `RABBITMQ_URL` environment variable. All events are sent to the
 
 ## Monitoring and Logging
 
-- Prometheus metrics exposed at `/metrics`
+- Prometheus metrics exposed at `/metrics` via `prometheus-fastapi-instrumentator`
 - Structured logging compatible with Loki/ELK
 - Health check endpoint at `/healthcheck`
 
