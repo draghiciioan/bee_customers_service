@@ -1,7 +1,5 @@
 import importlib
 import uuid
-from fastapi.testclient import TestClient
-import pytest
 import pytest
 
 

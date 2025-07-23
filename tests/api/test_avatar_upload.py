@@ -1,7 +1,6 @@
 import importlib
 import uuid
 from pathlib import Path
-from fastapi.testclient import TestClient
 import pytest
 
 
@@ -22,7 +21,7 @@ async def create_customer(client, headers):
 
 @pytest.mark.asyncio
 async def test_upload_avatar_success(db_session, tmp_path, auth_headers, internal_headers, async_client):
-    main_module = importlib.reload(__import__('main'))
+    importlib.reload(__import__('main'))
     client = async_client
     customer_id = await create_customer(client, internal_headers)
 
@@ -43,7 +42,7 @@ async def test_upload_avatar_success(db_session, tmp_path, auth_headers, interna
 
 @pytest.mark.asyncio
 async def test_upload_avatar_invalid_file(db_session, tmp_path, auth_headers, internal_headers, async_client):
-    main_module = importlib.reload(__import__('main'))
+    importlib.reload(__import__('main'))
     client = async_client
     customer_id = await create_customer(client, internal_headers)
 
@@ -61,7 +60,7 @@ async def test_upload_avatar_invalid_file(db_session, tmp_path, auth_headers, in
 
 @pytest.mark.asyncio
 async def test_avatar_requires_auth(db_session, tmp_path, internal_headers, async_client):
-    main_module = importlib.reload(__import__('main'))
+    importlib.reload(__import__('main'))
     client = async_client
     customer_id = await create_customer(client, internal_headers)
 
