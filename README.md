@@ -70,7 +70,11 @@ Check the **Actions** tab or your pull request checks to see the results.
    ```
 The `.env.example` file lists all supported settings.
 
-4. Run the service:
+4. Initialize the database schema using migrations or a dedicated setup script. Example with Alembic:
+   ```bash
+   poetry run alembic upgrade head
+   ```
+5. Run the service:
    ```
    poetry run uvicorn main:app --reload
    ```
@@ -310,6 +314,7 @@ Example:
 - **2025-07-26**: Added JSON log formatter with `timestamp`, `level`, `service_name`, and `trace_id` fields.
 - **2025-07-27**: Added optional Redis queueing for failed events and management script `scripts/resend_failed_events.py`.
 - **2025-07-23**: Switched to asynchronous SQLAlchemy with `asyncpg`; all routes and services are now async.
+- **2025-07-28**: Database tables are no longer created automatically. Run migrations or a setup script before starting the service.
 
 ## License
 
