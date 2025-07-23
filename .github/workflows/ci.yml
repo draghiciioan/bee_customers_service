@@ -1,0 +1,21 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: Install Poetry and dependencies
+        run: |
+          pip install poetry
+          poetry install
+          pip install ruff
+      - name: Lint
+        run: ruff .
+      - name: Run tests
+        run: poetry run pytest --cov=bee_customers_service
