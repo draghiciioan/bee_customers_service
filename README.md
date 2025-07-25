@@ -133,7 +133,7 @@ Serviciul poate fi configurat folosind variabile de mediu sau un fișier `.env`.
 
 ### Setări bază de date
 
-- `DATABASE_URL`: String de conexiune PostgreSQL (implicit: "postgresql://postgres:postgres@localhost:5432/bee_customers")
+- `DATABASE_URL`: String de conexiune PostgreSQL (implicit: "postgresql+asyncpg://postgres:postgres@localhost:5432/bee_customers")
 
 ### Setări JWT
 
@@ -192,7 +192,7 @@ Serviciul poate fi configurat folosind variabile de mediu sau un fișier `.env`.
 
 3. Creează un fișier `.env` cu configurația ta:
    ```
-   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bee_customers
+   DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/bee_customers
    SECRET_KEY=your-secret-key
    RABBITMQ_URL=amqp://guest:guest@localhost:5672/
    REDIS_URL=redis://localhost:6379/0
@@ -222,7 +222,7 @@ Serviciul poate fi configurat folosind variabile de mediu sau un fișier `.env`.
 2. Rulează containerul:
    ```bash
    docker run -p 8007:8007 \
-     -e DATABASE_URL=postgresql://postgres:postgres@postgres:5432/bee_customers \
+     -e DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/bee_customers \
      -e RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/ \
      -e REDIS_URL=redis://redis:6379/0 \
      bee-customers-service
