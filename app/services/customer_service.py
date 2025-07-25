@@ -4,7 +4,14 @@ from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 from uuid import UUID
 import logging
-import httpx
+import asyncio
+import json
+import urllib.request
+
+try:  # httpx is optional in production
+    import httpx
+except Exception:  # pragma: no cover - optional dependency
+    httpx = None
 
 from app.core.config import settings
 
@@ -22,14 +29,34 @@ class CustomerService:
             return
 
         url = f"{settings.AUTH_SERVICE_URL}/api/users/{user_id}"
-        try:
-            async with httpx.AsyncClient() as client:
-                await client.patch(url, json=data, timeout=2)
-        except Exception as exc:
-            self.logger.warning(
-                "Failed to notify auth service",
-                extra={"user_id": str(user_id), "error": str(exc)},
-            )
+
+        if httpx is not None:
+            try:
+                async with httpx.AsyncClient() as client:
+                    await client.patch(url, json=data, timeout=2)
+                return
+            except Exception as exc:  # pragma: no cover - network issues
+                self.logger.warning(
+                    "Failed to notify auth service",
+                    extra={"user_id": str(user_id), "error": str(exc)},
+                )
+        else:  # Fallback using urllib if httpx is unavailable
+            def send_patch() -> None:
+                request = urllib.request.Request(
+                    url,
+                    method="PATCH",
+                    data=json.dumps(data).encode(),
+                    headers={"Content-Type": "application/json"},
+                )
+                urllib.request.urlopen(request, timeout=2)
+
+            try:
+                await asyncio.to_thread(send_patch)
+            except Exception as exc:  # pragma: no cover - network issues
+                self.logger.warning(
+                    "Failed to notify auth service",
+                    extra={"user_id": str(user_id), "error": str(exc)},
+                )
 
     async def create_customer(
         self, customer: CustomerCreate, trace_id: str
