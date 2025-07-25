@@ -11,8 +11,11 @@ from alembic import context
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-database_url = settings.DATABASE_URL.replace("+asyncpg", "")
-config.set_main_option("sqlalchemy.url", database_url)
+
+# Use a separate synchronous URL for Alembic migrations
+# This ensures we don't modify the async URL used by the application
+sync_database_url = settings.DATABASE_URL.replace("+asyncpg", "")
+config.set_main_option("sqlalchemy.url", sync_database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -43,7 +46,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = database_url
+    url = sync_database_url
     context.configure(
         url=url,
         target_metadata=target_metadata,

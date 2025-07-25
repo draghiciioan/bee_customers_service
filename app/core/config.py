@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     # Database settings
     DATABASE_URL: str = os.getenv(
-        "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/bee_customers"
+        "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/bee_customers"
     )
 
     # JWT settings for authentication
@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # CORS settings
-    CORS_ORIGINS: list = [origin.strip() for origin in os.getenv("CORS_ORIGINS", "*").split(",")]
+    CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "*")
 
     # External services
     AUTH_SERVICE_URL: Optional[str] = os.getenv(

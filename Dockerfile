@@ -12,5 +12,12 @@ RUN pip install "fastapi>=0.116.1,<0.117.0" \
     "python-multipart>=0.0.20,<0.0.21" \
     "prometheus-fastapi-instrumentator>=7.1.0,<8.0.0" \
     "asyncpg>=0.30.0,<0.31.0" \
-    "redis>=4.0.0,<5.0.0"
-CMD ["uvicorn", "main:app", "--host=0.0.0.0", "--port=8007"]
+    "redis>=4.0.0,<5.0.0" \
+    "alembic>=1.13.1,<2.0.0" \
+    "psycopg2-binary>=2.9.10,<3.0.0"
+
+# Make the entrypoint script executable
+RUN chmod +x entrypoint.sh
+
+# Use the entrypoint script
+ENTRYPOINT ["./entrypoint.sh"]
