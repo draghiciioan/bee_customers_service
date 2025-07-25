@@ -1,6 +1,6 @@
 # Set the environment variables
 $env:CORS_ORIGINS = "http://localhost:3000,http://localhost:8080"
-$env:DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/bee_customers"
+$env:DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/bee_customers"
 
 # Run the application
 Write-Host "Starting the application with CORS_ORIGINS=$env:CORS_ORIGINS"
