@@ -1,30 +1,30 @@
-# BeeConect Customers Service Fix
+# Remediere Serviciu Clienți BeeConect
 
-## Issue Fixed
+## Problema Rezolvată
 
-The `bee_customers_service` was failing to start with the following error:
+Serviciul `bee_customers_service` nu reușea să pornească, afișând următoarea eroare:
 
 ```
 pydantic_settings.exceptions.SettingsError: error parsing value for field "CORS_ORIGINS" from source "EnvSettingsSource"
 ```
 
-The root cause was a conflict between Pydantic's automatic JSON parsing for list types and our custom parsing logic for the `CORS_ORIGINS` environment variable.
+Cauza principală a fost un conflict între parsarea automată JSON a Pydantic pentru tipurile de listă și logica noastră personalizată de parsare pentru variabila de mediu `CORS_ORIGINS`.
 
-## Changes Made
+## Modificări Efectuate
 
-1. Modified `app/core/config.py` to change the type annotation for `CORS_ORIGINS` from `list` to `str`:
+1. S-a modificat `app/core/config.py` pentru a schimba adnotarea de tip pentru `CORS_ORIGINS` din `list` în `str`:
 
-   **Before:**
+   **Înainte:**
    ```python
    CORS_ORIGINS: list = [origin.strip() for origin in os.getenv("CORS_ORIGINS", "*").split(",")]
    ```
 
-   **After:**
+   **După:**
    ```python
    CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "*")
    ```
 
-2. This change allows the application to use the existing parsing logic in `main.py` to convert the string to a list:
+2. Această modificare permite aplicației să utilizeze logica de parsare existentă din `main.py` pentru a converti string-ul într-o listă:
 
    ```python
    cors_origins = settings.CORS_ORIGINS
@@ -32,33 +32,33 @@ The root cause was a conflict between Pydantic's automatic JSON parsing for list
        cors_origins = [origin.strip() for origin in cors_origins.split(",")]
    ```
 
-## How to Test
+## Cum să Testați
 
-1. Rebuild the customers-service container:
+1. Reconstruiți containerul pentru serviciul de clienți:
    ```
    cd C:\Users\jhony\Desktop\BeeConect\beeconect-dev
    make customers-service
    ```
 
-2. Check the logs to ensure the application starts correctly:
+2. Verificați logurile pentru a vă asigura că aplicația pornește corect:
    ```
    docker logs -f beeconect-dev-customers-service-1
    ```
 
-   You should see the application starting without any errors related to `CORS_ORIGINS`.
+   Ar trebui să vedeți aplicația pornind fără erori legate de `CORS_ORIGINS`.
 
-3. Test the API endpoints:
+3. Testați endpoint-urile API:
    ```
    curl http://localhost:8016/api/customers
    ```
 
-## Technical Explanation
+## Explicație Tehnică
 
-Pydantic's `BaseSettings` class expects complex types like lists to be provided as JSON strings in environment variables. When we defined `CORS_ORIGINS` as a list type in `config.py`, Pydantic tried to parse the environment variable as JSON before our custom parsing logic ran.
+Clasa `BaseSettings` din Pydantic se așteaptă ca tipurile complexe precum listele să fie furnizate ca string-uri JSON în variabilele de mediu. Când am definit `CORS_ORIGINS` ca tip de listă în `config.py`, Pydantic a încercat să parseze variabila de mediu ca JSON înainte ca logica noastră personalizată de parsare să ruleze.
 
-By changing the type to `str`, we avoid this conflict and let the application handle the parsing in `main.py`, which already has the logic to convert a comma-separated string to a list.
+Prin schimbarea tipului în `str`, evităm acest conflict și lăsăm aplicația să gestioneze parsarea în `main.py`, care are deja logica pentru a converti un string separat prin virgule într-o listă.
 
-This is a more robust approach because:
-1. It follows Pydantic's expected behavior for environment variables
-2. It allows for different formats of the `CORS_ORIGINS` environment variable (comma-separated string or "*" wildcard)
-3. It maintains compatibility with the existing code in `main.py`
+Această abordare este mai robustă deoarece:
+1. Urmează comportamentul așteptat de Pydantic pentru variabilele de mediu
+2. Permite diferite formate ale variabilei de mediu `CORS_ORIGINS` (string separat prin virgule sau wildcard "*")
+3. Menține compatibilitatea cu codul existent din `main.py`

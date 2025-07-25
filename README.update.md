@@ -1,35 +1,35 @@
-# BeeConect Customers Service Update
+# Actualizare Serviciu Clienți BeeConect
 
-## Issue Fixed
+## Problema Rezolvată
 
-The issue with the `bbe_customers_service` not working correctly in the beeconect-dev environment has been fixed. The problem was that the database migrations were not being run when the container started, so the database schema was not being created.
+Problema cu `bbe_customers_service` care nu funcționa corect în mediul beeconect-dev a fost rezolvată. Problema era că migrările bazei de date nu erau executate la pornirea containerului, astfel schema bazei de date nu era creată.
 
-## Changes Made
+## Modificări Efectuate
 
-1. Created an entrypoint script (`entrypoint.sh`) that:
-   - Waits for PostgreSQL to be ready
-   - Runs the database migrations using Alembic
-   - Starts the application using Uvicorn
+1. A fost creat un script de pornire (`entrypoint.sh`) care:
+   - Așteaptă ca PostgreSQL să fie pregătit
+   - Rulează migrările bazei de date folosind Alembic
+   - Pornește aplicația folosind Uvicorn
 
-2. Modified the Dockerfile to:
-   - Add Alembic as a dependency
-   - Make the entrypoint script executable
-   - Use the entrypoint script instead of directly running Uvicorn
+2. A fost modificat Dockerfile-ul pentru:
+   - A adăuga Alembic ca dependență
+   - A face scriptul de pornire executabil
+   - A utiliza scriptul de pornire în loc de a rula direct Uvicorn
 
-## How to Test
+## Cum să Testați
 
-1. Rebuild the customers-service container:
+1. Reconstruiți containerul pentru serviciul de clienți:
    ```
    cd C:\Users\jhony\Desktop\BeeConect\beeconect-dev
    make customers-service
    ```
 
-2. Check the logs to ensure the migrations are being run:
+2. Verificați logurile pentru a vă asigura că migrările sunt executate:
    ```
    docker logs -f beeconect-dev-customers-service-1
    ```
 
-   You should see output like:
+   Ar trebui să vedeți un output similar cu:
    ```
    Waiting for PostgreSQL to be ready...
    Running database migrations...
@@ -43,23 +43,23 @@ The issue with the `bbe_customers_service` not working correctly in the beeconec
    INFO:     Uvicorn running on http://0.0.0.0:8007 (Press CTRL+C to quit)
    ```
 
-3. Test the API endpoints:
+3. Testați endpoint-urile API:
    ```
    curl http://localhost:8016/api/customers
    ```
 
-## Additional Notes
+## Note Suplimentare
 
-If you encounter any issues with the entrypoint script, you may need to ensure it has the correct line endings (LF instead of CRLF) when running in a Linux container. You can fix this by running:
+Dacă întâmpinați probleme cu scriptul de pornire, este posibil să fie necesară asigurarea că acesta are terminațiile de linie corecte (LF în loc de CRLF) atunci când rulează într-un container Linux. Puteți rezolva acest lucru rulând:
 
 ```
 dos2unix entrypoint.sh
 ```
 
-Or by setting Git to automatically handle line endings:
+Sau setând Git să gestioneze automat terminațiile de linie:
 
 ```
 git config --global core.autocrlf input
 ```
 
-Then re-clone the repository or checkout the file again.
+Apoi clonați din nou repository-ul sau verificați din nou fișierul.
