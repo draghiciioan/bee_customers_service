@@ -1,17 +1,16 @@
 import asyncio
+
+import pytest
+
 from app.db.database import engine
 
-async def test_connection():
-    """Test that we can connect to the database with the async engine."""
-    try:
-        # Try to connect to the database
-        conn = await engine.connect()
-        print("Successfully connected to the database!")
-        await conn.close()
-        return True
-    except Exception as e:
-        print(f"Failed to connect to the database: {e}")
-        return False
 
-if __name__ == "__main__":
+@pytest.mark.asyncio
+async def test_connection() -> None:
+    """Ensure the async engine connects without errors."""
+    async with engine.connect() as conn:
+        assert await conn.run_sync(lambda c: True)
+
+
+if __name__ == "__main__":  # pragma: no cover - manual execution helper
     asyncio.run(test_connection())

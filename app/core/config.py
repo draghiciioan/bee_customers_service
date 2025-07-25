@@ -1,5 +1,6 @@
 import os
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from typing import Optional
 
 
@@ -12,6 +13,14 @@ class Settings(BaseSettings):
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/bee_customers"
     )
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def ensure_async_driver(cls, v: str) -> str:
+        """Ensure PostgreSQL URLs use the asyncpg driver."""
+        if v.startswith("postgresql://"):
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
 
     # JWT settings for authentication
     SECRET_KEY: str = os.getenv("SECRET_KEY", "supersecretkey")
