@@ -349,6 +349,23 @@ Dacă publicarea evenimentelor către RabbitMQ eșuează, evenimentele sunt stoc
 ```bash
 poetry run python scripts/resend_failed_events.py
 ```
+## Integrarea API-ului în aplicații web
+
+Pentru a integra acest serviciu într-o aplicație frontend, setează variabila `VITE_CUSTOMERS_API_URL` în fișierul `.env` al proiectului. Fiecare cerere către API trebuie să includă antetul `Authorization: Bearer <token>`.
+
+```javascript
+// Exemplu folosind fetch
+fetch(`${import.meta.env.VITE_CUSTOMERS_API_URL}/api/customers/`, {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+})
+  .then(r => r.json())
+  .then(data => console.log(data))
+  .catch(err => console.error(err));
+```
+
+CORS este configurat prin variabila `CORS_ORIGINS` pe server, iar erorile de rețea sau validare trebuie tratate în aplicația client.
 
 ## Licență
 
